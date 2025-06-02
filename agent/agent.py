@@ -13,7 +13,7 @@ class AgentConfig(BaseModel):
     """
     name: str = Field(..., description="Purpose of the agent")
     model_name: str = Field(..., description="Model to be used by the agent")
-
+    debug: bool = Field(default=False, description="Enable debug mode for the agent")
 
 class Agent(BaseModel):
     """

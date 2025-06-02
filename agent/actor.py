@@ -14,6 +14,7 @@ class ActorConfig(AgentConfig):
     """
     name: str = Field(default='Actor Agent', description="Purpose of the agent")
     module_name: str = 'actor'
+    code: str = Field(default='python', description="Code type: either python or html")
 
 class Actor(Agent):
     """
@@ -24,20 +25,56 @@ class Actor(Agent):
     def __init__(self, config: ActorConfig):
         super().__init__(config=config)
 
-    def act(self, image : Union[str, Image], action: str, prev_state_code: str = None, prev_state_critique: str = None) -> dict:
+
+    def python_prompt(self, action:str, prev_state_code: str = None, prev_state_critique: str = None):
+
+        """
+        Generate a Python prompt based on the action and previous state.
+
+        :param action: The action to perform.
+        :param prev_state_code: Previous state code.
+        :param prev_state_critique: Previous state critique.
+        :return: Formatted Python prompt.
+        """
+        return f"""
+        <image>
+
+        ### Task: 
+        {action}
+
+        { f"### Previous code for chart: \n\n```{self.config.code}\n{prev_state_code}\n```" if prev_state_code else "" }
+        { f"### Previous critique on the chart: \n\n{prev_state_critique}\n" if prev_state_critique else "" }
+        """
+
+
+    def html_prompt(self, action: str, prev_state_code: str = None, prev_state_critique: str = None):
+
+        pass
+
+
+    def act(self, request: str, image : Union[str, Image] = None, prev_state_code: str = None, prev_state_critique: str = None) -> dict:
         """
         Perform an action with the given parameters.
 
-        :param action: The action to perform.
+        :param request: The action to perform.
         :return: Result of the action.
         """
         # Placeholder for action logic
+        if isinstance(image, str):
+            if os.path.exists(
+                image):
+                image = Image.open(image)
+            else:
+                raise ValueError(f"Image path {image} does not exist.")
 
         sys_prompt = get_sys_prompt(self.config.module_name)
+        sys_prompt += f"\n\n### Code language: {self.config.code}\n"
 
-        user_prompt = f"""
-        You are an actor agent. Your task is to perform the following action:
-        """
+        if self.config.code == 'html':
+            user_prompt = self.html_prompt(request, prev_state_code, prev_state_critique)
+        else:
+            user_prompt = self.python_prompt(request, prev_state_code, prev_state_critique)
+
 
         messages = [
             {
@@ -46,12 +83,30 @@ class Actor(Agent):
             },
             {
                 'role': 'user',
-                'content': action
+                'content': [
+                    {
+                        'type': 'image',
+                        'image': image
+                    },
+                    {
+                        'type': 'text',
+                        'text': user_prompt
+                    }
+                ]
             }
         ]
 
-        return self.llm(messages)
+        action = self.llm(messages)
+
+        if self.config.debug:
+            print(f"Action: {action}")
+
+        return {
+            'action': action
+        }
     
+    def act_with_prev_state(self, request: str, image : Union[str, Image] = None, prev_state_code: str = None, prev_state_critique: str = None) -> dict:
+        return self.act(request, image, prev_state_code, prev_state_critique)
 
     def __str__(self):
         """

@@ -78,7 +78,7 @@ class Evaluator(Agent):
             return -1
 
 
-    def act(self, image : Union[str, Image], action: str) -> dict:
+    def act(self, image : Union[str, Image.Image], action: str) -> dict:
         """
         Perform an action with the given parameters.
 

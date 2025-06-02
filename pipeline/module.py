@@ -18,7 +18,8 @@ from agent import (
     VisionCritic
 )
 
-
+from pipeline.execution import Env
+from pipeline.utils import merge_images
 
 class ModuleConfig(AgentConfig):
     """
@@ -26,15 +27,58 @@ class ModuleConfig(AgentConfig):
     """
     name: str = Field(default='Module Agent', description="Purpose of the agent")
     module_name: str = 'module'
+    actor_config: ActorConfig = Field(default_factory=ActorConfig, description="Configuration for the actor module")
+    critic_config: CriticConfig = Field(default_factory=CriticConfig, description="Configuration for the critic module")
 
 class Module(Agent):
     """
     Represents a module that can perform actions based on the provided configuration.
     """
     config: ModuleConfig
+    actor = Actor
+    critic = Critic
 
     def __init__(self, config: ModuleConfig):
         super().__init__(config=config)
+        self.actor = Actor(config=config.actor_config)
+        self.critic = Critic(config=config.critic_config)
+    
+    
+    
+    def act(self,
+            env: Env, 
+            request: str, 
+            image=None, 
+            prev_state_code=None, 
+            prev_state_critique=None, 
+            run_name: str = '', 
+            tag: str = '') -> dict:
+        
+        """
+        Perform an action with the given parameters.
+
+        :param action: The action to perform.
+        :param image: Optional image input for the actor.
+        :param prev_state_code: Optional previous state code for the actor.
+        :param prev_state_critique: Optional previous state critique for the critic.
+        :return: Result of the action.
+        """
+        # Delegate action to actor and critic
+        actor_result = self.actor.act(request, image, prev_state_code, prev_state_critique)
+        action = actor_result.get('action', request)
+
+        transition = env.step(action, run_name=run_name, tag=tag)
+
+        combined_image = merge_images([image, transition['image_file_path']])
+
+        # TODO: Execute the action and get the result
+        
+        critic_result = self.critic.act(action, image, )
+
+        return {
+            "actor_result": actor_result,
+            "critic_result": critic_result
+        }
 
     def __str__(self):
         """
