@@ -32,3 +32,33 @@ class CriticConfig(AgentConfig):
 
     vision: VisionCriticConfig = Field(default_factory=VisionCriticConfig)
     text: TextCriticConfig = Field(default_factory=TextCriticConfig)
+
+
+class VisionCritic(Agent):
+    """
+    Vision Critic Agent that evaluates visual inputs.
+    """
+    def __init__(self, config: VisionCriticConfig):
+        super().__init__(config)
+        self.sys_prompt = get_sys_prompt('vision_critic')
+
+
+class TextCritic(Agent):
+    """
+    Text Critic Agent that evaluates text inputs.
+    """
+    def __init__(self, config: TextCriticConfig):
+        super().__init__(config)
+        self.sys_prompt = get_sys_prompt('text_critic')
+
+
+class Critic(Agent):
+
+    """
+    Critic Agent that combines both vision and text critics.
+    """
+    def __init__(self, config: CriticConfig):
+        super().__init__(config)
+        self.vision_critic = VisionCritic(config.vision)
+        self.text_critic = TextCritic(config.text)
+        self.sys_prompt = get_sys_prompt('critic')
