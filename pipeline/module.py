@@ -69,16 +69,40 @@ class Module(Agent):
 
         transition = env.step(action, run_name=run_name, tag=tag)
 
-        combined_image = merge_images([image, transition['image_file_path']])
+        combined_image = merge_images([image, transition['image_file_path']],
+                                      titles=['Input Image', 'Transition Image'],
+                                        run_name=run_name, tag=tag
+                                      )
+        action_code = transition.get('code', None)
+        critic_result = self.critic.act(request, 
+                                        action_code=action_code,
+                                        action_image=combined_image)
 
-        # TODO: Execute the action and get the result
-        
-        critic_result = self.critic.act(action, image, )
 
         return {
             "actor_result": actor_result,
             "critic_result": critic_result
         }
+    
+
+    def act_with_prev_state(self,
+            env: Env, 
+            request: str, 
+            image=None, 
+            prev_state_code=None, 
+            prev_state_critique=None, 
+            run_name: str = '', 
+            tag: str = '') -> dict:
+        """
+        Perform an action with the given parameters, considering previous state.
+
+        :param request: The action to perform.
+        :param image: Optional image input for the actor.
+        :param prev_state_code: Optional previous state code for the actor.
+        :param prev_state_critique: Optional previous state critique for the critic.
+        :return: Result of the action.
+        """
+        pass
 
     def __str__(self):
         """
@@ -87,3 +111,12 @@ class Module(Agent):
         :return: String representation of the module.
         """
         return f"Module(name={self.config.name}, model_name={self.config.model_name})"
+    
+
+if __name__ == "__main__":
+
+    actor_config = ActorConfig(name="Test Actor", module_name="module")
+    critic_config = CriticConfig(name="Test Critic", module_name="module")
+    module_config = ModuleConfig(name="Test Module", actor_config=actor_config, critic_config=critic_config)
+    module = Module(config=module_config)
+    print(module)

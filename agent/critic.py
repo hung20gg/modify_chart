@@ -75,7 +75,10 @@ class VisionCritic(Agent):
         self.sys_prompt = get_sys_prompt('vision_critic')
 
 
-    def act_with_prev_state(self, request: str, action_image : Union[str, Image.Image] = None, prev_vision_critique: str = None) -> dict:
+    def act_with_prev_state(self, 
+                            request: str, 
+                            action_image : Union[str, Image.Image] = None, 
+                            prev_vision_critique: str = None) -> dict:
         """
         Perform an action with the given parameters, Given previous state critique.
 
@@ -124,7 +127,10 @@ class VisionCritic(Agent):
         return extract_critique_and_score(raw_response)
 
 
-    def act(self, request: str, action_image: Union[str, Image.Image] = None) -> dict:
+    def act(self, 
+            request: str, 
+            action_image: Union[str, Image.Image] = None) -> dict:
+        
         sys_prompt = get_sys_prompt(self.config.module_name)
 
         user_prompt = f"""
@@ -169,7 +175,7 @@ class TextCritic(Agent):
         super().__init__(config)
         self.sys_prompt = get_sys_prompt('text_critic')
 
-    def act(self, request: str, action_code: str = None, prev_code: str = None, prev_code_critique: str = None) -> dict:
+    def act_with_prev_state(self, request: str, action_code: str = None, prev_code: str = None, prev_code_critique: str = None) -> dict:
 
         sys_prompt = get_sys_prompt(self.config.module_name)
         sys_prompt += f"\n\n### Code language: {self.config.code}\n"
@@ -204,7 +210,7 @@ class TextCritic(Agent):
         return extract_critique_and_score(raw_response)
     
 
-    def act_with_prev_state(self, request: str, action_code: str = None) -> dict:
+    def act(self, request: str, action_code: str = None) -> dict:
 
         sys_prompt = get_sys_prompt(self.config.module_name)
         sys_prompt += f"\n\n### Code language: {self.config.code}\n"
@@ -246,7 +252,7 @@ class Critic(Agent):
         self.text_critic = TextCritic(config.text)
 
 
-    def act(self, request: str, action_image: Union[str, Image] = None, action_code: str = None) -> dict:
+    def act(self, request: str, action_image: Union[str, Image.Image] = None, action_code: str = None) -> dict:
         """
         Perform an action with the given parameters.
 
@@ -269,7 +275,7 @@ class Critic(Agent):
             'text_critique': text_critique
         }
     
-    def act_with_prev_state(self, request: str, action_image: Union[str, Image] = None, action_code: str = None, prev_vision_critique: str = None, prev_text_critique: str = None) -> dict:
+    def act_with_prev_state(self, request: str, action_image: Union[str, Image.Image] = None, action_code: str = None, prev_vision_critique: str = None, prev_text_critique: str = None) -> dict:
         """
         Perform an action with the given parameters, considering previous critiques.
         :param request: The action to perform.

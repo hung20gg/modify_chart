@@ -1,13 +1,21 @@
 from typing import Union
 from PIL import Image, ImageDraw, ImageFont
+import os
+import sys 
+import time
+import threading
+current_dir = os.path.dirname(os.path.abspath(__file__))
 
 def merge_images(
     images: list[Union[str, Image.Image]], 
     titles: list[str] = None,
     rows: int = 1, 
     padding: int = 10,
-    max_width: int = None,
-    max_height: int = None
+    max_width: int = 1600,
+    max_height: int = 800,
+    run_name: str = '',
+    tag: str = '', 
+    save_path: str = '',
 ) -> Image.Image:
     """
     Merge a list of images into a single image with specified number of rows.
@@ -107,4 +115,23 @@ def merge_images(
             
             draw.text((text_x, text_y), title, fill='black', font=font)
     
+    if save_path:
+        
+        def save_image_thread(img, path, r_name, t):
+            # Save the merged image to the specified path
+            output_dir = os.path.join(path, 'merged', r_name)
+            os.makedirs(output_dir, exist_ok=True)
+            run_time = time.strftime("%Y%m%d-%H%M%S")
+            output_path = os.path.join(output_dir, f"merged_{t}_{run_time}.png")
+            img.copy().save(output_path)
+            print(f"Merged image saved to {output_path}")
+        
+        # Start a new thread to save the image
+        save_thread = threading.Thread(
+            target=save_image_thread,
+            args=(new_image, save_path, run_name, tag)
+        )
+        save_thread.daemon = True  # Set as daemon so it doesn't block program exit
+        save_thread.start()
+
     return new_image

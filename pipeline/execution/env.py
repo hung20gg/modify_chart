@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 import os
 import sys 
@@ -38,6 +38,8 @@ class Env(BaseModel):
     """
     Represents an environment that can execute actions based on the provided configuration.
     """
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    
     config: EnvConfig
 
     def step(self, action: str, run_name: str = '', tag: str = '') -> str:

@@ -12,14 +12,6 @@ from agent.prompt.get_sys_prompt import get_sys_prompt
 
 from llm.llm_utils import get_json_from_text_response
 
-from evaluator import (
-    ChartTypeEvaluator,
-    ColorEvaluator,
-    LayoutEvaluator,
-    TextEvaluator
-)
-
-
 class EvaluatorConfig(AgentConfig):
     """
     Configuration for the evaluator.
@@ -93,9 +85,4 @@ class Evaluator(Agent):
             image = Image.open(image)
 
 
-        text_evaluator = TextEvaluator(use_position=False, use_axs=True)
-        type_evaluator = ChartTypeEvaluator()
-        color_evaluator = ColorEvaluator()
-        layout_evaluator = LayoutEvaluator()
-        
         pass

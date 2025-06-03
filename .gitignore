@@ -116,3 +116,5 @@ llm/
 
 .env
 *.env
+
+temp/

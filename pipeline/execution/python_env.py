@@ -13,21 +13,21 @@ from pipeline.execution.env import EnvConfig, Env, random_string
 # From @github.com/metal-chart-generation/metal/blob/main/src/agents/utils.py#L62
 def extract_validate_run_code(code, code_file, output_name):
       
-    # if "plt.show()" in code:
-    #     code = code.replace("plt.show()", "")
-    # if "plt.tight_layout()" not in code:
-    #     code += "\nplt.tight_layout()"
-    # if "plt.savefig" not in code:
-    #     code += f"\nplt.savefig('{output_name}')"
-    # else:
-    #     lines_to_be_deleted = []
-    #     lines = code.split("\n")
-    #     for i, line in enumerate(lines):
-    #         if "plt.savefig" in line:
-    #             lines_to_be_deleted.append(i)
-    #     lines = [line for i, line in enumerate(lines) if i not in lines_to_be_deleted]
-    #     lines.append(f"plt.savefig('{output_name}')")
-    #     code = "\n".join(lines)
+    if "plt.show()" in code:
+        code = code.replace("plt.show()", "")
+    if "plt.tight_layout()" not in code:
+        code += "\nplt.tight_layout()"
+    if "plt.savefig" not in code:
+        code += f"\nplt.savefig('{output_name}')"
+    else:
+        lines_to_be_deleted = []
+        lines = code.split("\n")
+        for i, line in enumerate(lines):
+            if "plt.savefig" in line:
+                lines_to_be_deleted.append(i)
+        lines = [line for i, line in enumerate(lines) if i not in lines_to_be_deleted]
+        lines.append(f"plt.savefig('{output_name}')")
+        code = "\n".join(lines)
     
     # with open(code_file, "w") as f:
     #     f.write(code)
@@ -88,10 +88,11 @@ class PythonEnv(Env):
 
         html_code = get_code_from_text_response(action)[-1]
         if html_code['language'] not in ['python', 'python3']:
-            raise ValueError(f"Unsupported language: {html_code['language']}. Expected 'html', 'javascript', or 'html5'.")
+            raise ValueError(f"Unsupported language: {html_code['language']}. Expected 'python' or 'python3'.")
         
-        os.makedirs(os.path.join(self.config.cache_folder, run_name), exist_ok=True)
-        
+        os.makedirs(os.path.join(self.config.cache_folder,'code', run_name), exist_ok=True)
+        os.makedirs(os.path.join(self.config.cache_folder,'images', run_name), exist_ok=True)
+
         run_time = time.strftime("%Y%m%d-%H%M%S")
         
         python_file_path = os.path.join(self.config.cache_folder, 'code', run_name, f"render_{tag}_{run_time}.py")
@@ -107,3 +108,26 @@ class PythonEnv(Env):
             'image_file_path': image_file_path,
             'run_name': run_name,
         }
+
+
+    def __str__(self):
+        """
+        String representation of the Python environment.
+
+        :return: String representation of the Python environment.
+        """
+        return f"PythonEnv(name={self.config.name}, module_name={self.config.module_name})"
+    
+
+if __name__ == "__main__":
+    # Example usage
+    config = PythonEnvConfig(name="Python Environment")
+    env = PythonEnv(config=config)
+    
+    with open(os.path.join(current_dir, '..', '..', 'example', 'chart.py'), 'r') as f:
+        data = f.read()
+
+    data = '```python\n' + data + '\n```'
+
+    result = env.step(data, run_name='test_run', tag='example')
+    print(result)
