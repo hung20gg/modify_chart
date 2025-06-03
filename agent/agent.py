@@ -5,7 +5,7 @@ import os
 import sys 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from llm import get_llm_wrapper
+from llm import get_llm_wrapper, get_rotate_llm_wrapper
 
 class AgentConfig(BaseModel):
     """
@@ -29,7 +29,7 @@ class Agent(BaseModel):
         :param config: Configuration for the agent.
         """
         super().__init__(config=config)
-        self.llm = get_llm_wrapper(config.model_name)
+        self.llm = get_llm_wrapper(config.model_name, multimodal = True)
 
 
     def act(self, action: str) -> str:

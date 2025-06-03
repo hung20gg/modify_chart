@@ -3,10 +3,14 @@ from typing import Union
 from PIL import Image
 import os
 import sys 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.join(current_dir, '..'))
 
-from agent.agent import AgentConfig, Agent
-from agent.prompt.get_sys_prompt import get_sys_prompt
+# import dotenv
+# dotenv.load_dotenv(os.path.join(current_dir, '..', '.env'))
+
+from prompt.get_sys_prompt import get_sys_prompt
+from agent import AgentConfig, Agent
 
 class ActorConfig(AgentConfig):
     """
@@ -25,6 +29,24 @@ class Actor(Agent):
     def __init__(self, config: ActorConfig):
         super().__init__(config=config)
 
+    def get_sys_prompt(self) -> str:
+        
+        code_snippet = ""
+        if self.config.code == 'python':
+            code_snippet = "### Code sample for python chart:"
+            
+            with open(os.path.join(current_dir, '..', 'example', 'chart.py'), 'r') as f:
+                code_snippet += '```python\n' + f.read() + '\n```'
+        elif self.config.code == 'html':
+            code_snippet = "### Code sample for html chart:"
+            
+            with open(os.path.join(current_dir, '..', 'example', 'chart.html'), 'r') as f:
+                code_snippet += '```html\n' + f.read() + '\n```'
+        else:
+            raise ValueError(f"Unsupported code type: {self.config.code}")
+        
+        
+        return get_sys_prompt(self.config.module_name) + f"\n\n{code_snippet}"
 
     def python_prompt(self, action:str, prev_state_code: str = None, prev_state_critique: str = None):
 
@@ -37,22 +59,32 @@ class Actor(Agent):
         :return: Formatted Python prompt.
         """
         return f"""
-        <image>
+<image>
+### Code language: python
 
-        ### Task: 
-        {action}
+### Task: 
+{action}
 
-        { f"### Previous code for chart: \n\n```{self.config.code}\n{prev_state_code}\n```" if prev_state_code else "" }
-        { f"### Previous critique on the chart: \n\n{prev_state_critique}\n" if prev_state_critique else "" }
-        """
+{ f"### Previous code for chart: \n\n```{self.config.code}\n{prev_state_code}\n```" if prev_state_code else "" }
+{ f"### Previous critique on the chart: \n\n{prev_state_critique}\n" if prev_state_critique else "" }
+"""
 
 
     def html_prompt(self, action: str, prev_state_code: str = None, prev_state_critique: str = None):
 
-        pass
+         return f"""
+<image>
+### Code language: python
+
+### Task: 
+{action}
+
+{ f"### Previous code for chart: \n\n```{self.config.code}\n{prev_state_code}\n```" if prev_state_code else "" }
+{ f"### Previous critique on the chart: \n\n{prev_state_critique}\n" if prev_state_critique else "" }
+"""
 
 
-    def act(self, request: str, image : Union[str, Image] = None, prev_state_code: str = None, prev_state_critique: str = None) -> dict:
+    def act(self, request: str, image : Union[str, Image.Image] = None, prev_state_code: str = None, prev_state_critique: str = None) -> dict:
         """
         Perform an action with the given parameters.
 
@@ -67,7 +99,7 @@ class Actor(Agent):
             else:
                 raise ValueError(f"Image path {image} does not exist.")
 
-        sys_prompt = get_sys_prompt(self.config.module_name)
+        sys_prompt = self.get_sys_prompt()
         sys_prompt += f"\n\n### Code language: {self.config.code}\n"
 
         if self.config.code == 'html':
@@ -75,6 +107,16 @@ class Actor(Agent):
         else:
             user_prompt = self.python_prompt(request, prev_state_code, prev_state_critique)
 
+        content = []
+        if isinstance(image, Image.Image):
+            content.append({
+                'type': 'image',
+                'image': image
+            })
+        content.append({
+            'type': 'text',
+            'text': user_prompt
+        })
 
         messages = [
             {
@@ -83,16 +125,7 @@ class Actor(Agent):
             },
             {
                 'role': 'user',
-                'content': [
-                    {
-                        'type': 'image',
-                        'image': image
-                    },
-                    {
-                        'type': 'text',
-                        'text': user_prompt
-                    }
-                ]
+                'content': content
             }
         ]
 
@@ -105,7 +138,7 @@ class Actor(Agent):
             'action': action
         }
     
-    def act_with_prev_state(self, request: str, image : Union[str, Image] = None, prev_state_code: str = None, prev_state_critique: str = None) -> dict:
+    def act_with_prev_state(self, request: str, image : Union[str, Image.Image] = None, prev_state_code: str = None, prev_state_critique: str = None) -> dict:
         return self.act(request, image, prev_state_code, prev_state_critique)
 
     def __str__(self):
@@ -116,3 +149,18 @@ class Actor(Agent):
         """
         return f"Actor(name={self.config.name}, model_name={self.config.model_name})"
     
+
+if __name__ == "__main__":
+    actor_config = ActorConfig(name="Test Actor", model_name='gpt-4.1-mini')
+    actor = Actor(config=actor_config)
+    print(actor)
+    
+    task =   """Alpha: (2000, 50,000), (2005, 60,000), (2010, 65,000), (2020, 80,000)
+Beta: (2000, 30,000), (2008, 40,000), (2015, 50,000), (2020, 55,000)
+Gamma: (2000, 20,000), (2004, 25,000), (2012, 35,000), (2018, 45,000)
+
+    Plot a line graph showing the population trends for all three cities.
+    """
+    
+    result = actor.act(task, image=None, prev_state_code=None, prev_state_critique=None)
+    print(result)

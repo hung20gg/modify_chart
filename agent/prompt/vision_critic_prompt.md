@@ -18,3 +18,26 @@ Add the following criteria for each score:
 - 2: The new chart addresses some aspects of the previous critique but does not fully resolve all issues. It maintains data accuracy and adheres to the user’s request for chart type, but improvements are minimal, and the presentation may still lack polish or creativity.
 - 3: The new chart addresses most aspects of the previous critique, showing noticeable improvements in data accuracy, logical display, or design (e.g., reducing overlap, clearer labels, or better frame). Minor issues from the critique may remain, but the chart is improved overall.
 - 5: The new chart fully addresses all aspects of the previous critique, resulting in a significantly improved design. It presents data accurately and logically, aligns perfectly with the user’s request, and incorporates aesthetic enhancements (e.g., clear frame, well-chosen colors, and engaging design) that resolve prior issues and elevate the overall quality.
+
+
+The score can be any number between 0 and 5. Think step-by-step and return in the following format
+
+<format>
+
+### Critique:
+Your_critique
+
+### Score
+score (int)
+</format>
+
+
+### Example:
+<example>
+
+### Critique:
+The given chart look great (with reasoning explaination) but not perfect
+
+### Score
+4
+</example>
