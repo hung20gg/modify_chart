@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List
 
 import os
@@ -20,6 +20,7 @@ class Agent(BaseModel):
     """
     Represents an agent that can perform actions based on the provided configuration.
     """
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     config: AgentConfig
     llm: Optional[object] = Field(default=None, description="Language model used by the agent")
 

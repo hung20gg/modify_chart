@@ -7,7 +7,7 @@ import os
 import sys 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from agent.agent import AgentConfig, Agent
+from agent.base import AgentConfig, Agent
 from agent.prompt.get_sys_prompt import get_sys_prompt
 
 from llm.llm_utils import get_json_from_text_response

@@ -9,8 +9,9 @@ sys.path.append(os.path.join(current_dir, '..'))
 # import dotenv
 # dotenv.load_dotenv(os.path.join(current_dir, '..', '.env'))
 
-from prompt.get_sys_prompt import get_sys_prompt
-from agent import AgentConfig, Agent
+from agent.prompt.get_sys_prompt import get_sys_prompt
+from agent.base import AgentConfig, Agent
+from utils import open_image
 
 class ActorConfig(AgentConfig):
     """
@@ -93,9 +94,8 @@ class Actor(Agent):
         """
         # Placeholder for action logic
         if isinstance(image, str):
-            if os.path.exists(
-                image):
-                image = Image.open(image)
+            if os.path.exists(image):
+                image = open_image(image)
             else:
                 raise ValueError(f"Image path {image} does not exist.")
 

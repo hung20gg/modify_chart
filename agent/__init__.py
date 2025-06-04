@@ -1,5 +1,5 @@
 from .actor import ActorConfig, Actor
-from .agent import AgentConfig, Agent
+from .base import AgentConfig, Agent
 from .critic import (
     CriticConfig,
     Critic,

@@ -22,7 +22,7 @@ def get_sys_prompt(module_name: str) -> str:
             sys_prompt = f.read()
     
     elif module_name == "vision_critic":
-        with open(os.path.join(CURRENT_DIR, 'visual_critic_prompt.md'), 'r') as f:
+        with open(os.path.join(CURRENT_DIR, 'vision_critic_prompt.md'), 'r') as f:
             sys_prompt = f.read()
 
     elif module_name == "evaluator":

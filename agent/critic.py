@@ -1,43 +1,17 @@
 from pydantic import BaseModel, Field
 from typing import Union
 from PIL import Image
+from concurrent.futures import ThreadPoolExecutor
 
 import os
 import sys 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from agent.agent import AgentConfig, Agent
+from agent.base import AgentConfig, Agent
 from agent.prompt.get_sys_prompt import get_sys_prompt
-
-
-def extract_critique_and_score(raw_response: str) -> str:
-    """
-    Extracts the critique and score from the raw response.
-
-    :param raw_response: The raw response string.
-    :return: A tuple containing the critique and score.
-    """
-    # Assuming the response is formatted as "Critique: <critique> Score: <score>"
-    critique = raw_response
-    final_score = 0
-
-    if '## Critique:' in raw_response and '## Score:' in raw_response:
-        critique = raw_response.split('## Critique:')[1].split('## Score:')[0].strip()
-        score = raw_response.split('## Score:')[1].strip()
-        
-        if score.isdigit():
-            final_score = int(score)
-        
-        elif '\\boxed{' in score:
-            score = score.split('\\boxed{')[1].split('}')[0]
-            if score.isdigit():
-                final_score = int(score)
-        
-        return {
-            'critique': critique,
-            'score': final_score
-        }
-
+from utils import open_image, extract_critique_and_score
+import logging
+logging.basicConfig(level=logging.INFO)
 
 class VisionCriticConfig(AgentConfig):
     """
@@ -61,15 +35,35 @@ class CriticConfig(AgentConfig):
     """
     name: str = Field(default='Critic Agent', description="Purpose of the agent")
     module_name: str = 'critic'
+    model_name: str = Field(default=None, description="Model to be used by the critic")
 
     vision: VisionCriticConfig = Field(default_factory=VisionCriticConfig)
     text: TextCriticConfig = Field(default_factory=TextCriticConfig)
+
+    def __init__(self, **data):
+        """
+        Initialize the CriticConfig with the given parameters.
+        """
+        super().__init__(**data)
+        if not self.model_name:
+            text_model = self.text.model_name
+            vision_model = self.vision.model_name
+
+            if text_model != vision_model:
+                logging.warning(
+                    f"Text model {text_model} and Vision model {vision_model} are different. "
+                    "This may lead to inconsistent behavior in the Critic Agent."
+                )
+            self.model_name = vision_model
+                
 
 
 class VisionCritic(Agent):
     """
     Vision Critic Agent that evaluates visual inputs.
     """
+    sys_prompt: str = None
+
     def __init__(self, config: VisionCriticConfig):
         super().__init__(config)
         self.sys_prompt = get_sys_prompt('vision_critic')
@@ -87,6 +81,14 @@ class VisionCritic(Agent):
         :param prev_state_critique: Previous critique on the image.
         :return: Result of the action.
         """
+
+        if isinstance(image, str):
+            if os.path.exists(image):
+                image = open_image(image)
+            else:
+                raise ValueError(f"Image path {image} does not exist.")
+
+
         # Implement the logic for vision critique here
         sys_prompt = get_sys_prompt(self.config.module_name)
 
@@ -171,6 +173,8 @@ class TextCritic(Agent):
     """
     Text Critic Agent that evaluates text inputs.
     """
+    sys_prompt: str = None
+
     def __init__(self, config: TextCriticConfig):
         super().__init__(config)
         self.sys_prompt = get_sys_prompt('text_critic')
@@ -246,6 +250,9 @@ class Critic(Agent):
     """
     Critic Agent that combines both vision and text critics.
     """
+    vision_critic: VisionCritic = None
+    text_critic: TextCritic = None
+
     def __init__(self, config: CriticConfig):
         super().__init__(config)
         self.vision_critic = VisionCritic(config.vision)
@@ -264,11 +271,14 @@ class Critic(Agent):
         vision_critique = None
         text_critique = None
 
-        if action_image:
-            vision_critique = self.vision_critic.act(request, action_image)
-
-        if action_code:
-            text_critique = self.text_critic.act(request, action_code)
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            # Submit both tasks
+            vision_future = executor.submit(self.vision_critic.act, request, action_image)
+            text_future = executor.submit(self.text_critic.act, request, action_code)
+            
+            # Get results
+            vision_critique = vision_future.result()
+            text_critique = text_future.result()
 
         return {
             'vision_critique': vision_critique,
@@ -279,8 +289,7 @@ class Critic(Agent):
         """
         Perform an action with the given parameters, considering previous critiques.
         :param request: The action to perform.
-        :param
-        action_image: Image input for the critic.
+        :param action_image: Image input for the critic.
         :param action_code: Code input for the critic.
         :param prev_vision_critique: Previous critique on the image.    
         :param prev_text_critique: Previous critique on the code.
@@ -289,12 +298,15 @@ class Critic(Agent):
         vision_critique = None
         text_critique = None
 
-        if action_image:
-            vision_critique = self.vision_critic.act_with_prev_state(request, action_image, prev_vision_critique)
-
-        if action_code:
-            text_critique = self.text_critic.act_with_prev_state(request, action_code, prev_text_critique)
-
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            # Submit both tasks
+            vision_future = executor.submit(self.vision_critic.act_with_prev_state, request, action_image, prev_vision_critique)
+            text_future = executor.submit(self.text_critic.act_with_prev_state, request, action_code, prev_text_critique)
+            
+            # Get results
+            vision_critique = vision_future.result()
+            text_critique = text_future.result()
+            
         return {
             'vision_critique': vision_critique,
             'text_critique': text_critique
