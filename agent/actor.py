@@ -159,8 +159,10 @@ if __name__ == "__main__":
 Beta: (2000, 30,000), (2008, 40,000), (2015, 50,000), (2020, 55,000)
 Gamma: (2000, 20,000), (2004, 25,000), (2012, 35,000), (2018, 45,000)
 
-    Plot a line graph showing the population trends for all three cities.
+    Change line graph to bar chart, and add a title "Population Growth Over Time" with x-axis label "Year" and y-axis label "Population".
     """
     
-    result = actor.act(task, image=None, prev_state_code=None, prev_state_critique=None)
-    print(result)
+    image_path = os.path.join(current_dir, '..', 'example', 'actor_chart.png')
+
+    result = actor.act(task, image=image_path, prev_state_code=None, prev_state_critique=None)
+    print(result['action'])
