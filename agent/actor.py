@@ -75,7 +75,7 @@ class Actor(Agent):
 
          return f"""
 <image>
-### Code language: python
+### Code language: html
 
 ### Task: 
 {action}
@@ -100,7 +100,6 @@ class Actor(Agent):
                 raise ValueError(f"Image path {image} does not exist.")
 
         sys_prompt = self.get_sys_prompt()
-        sys_prompt += f"\n\n### Code language: {self.config.code}\n"
 
         if self.config.code == 'html':
             user_prompt = self.html_prompt(request, prev_state_code, prev_state_critique)

@@ -38,6 +38,7 @@ class Module(BaseModel):
     config: ModuleConfig
     actor: Optional[Actor] = None
     critic: Optional[Critic] = None
+    debug: bool = Field(default=False, description="Enable debug mode for the module")
     
 
     def __init__(self, config: ModuleConfig):
@@ -68,6 +69,9 @@ class Module(BaseModel):
         actor_result = self.actor.act(request, image, prev_state_code, prev_state_critique)
         action = actor_result.get('action', request)
 
+        if self.debug:
+            print(f"Actor action: {action}")
+
         transition = env.step(action, run_name=run_name, tag=tag)
 
         combined_image = merge_images([image, transition['image_file_path']],
@@ -82,6 +86,8 @@ class Module(BaseModel):
                                          action_code=action_code,
                                          action_image=combined_image)
 
+        if self.debug:
+            print(f"Critic result: {critic_result}")
 
         return {
             "actor_result": actor_result,

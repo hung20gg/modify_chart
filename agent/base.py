@@ -12,7 +12,7 @@ class AgentConfig(BaseModel):
     Configuration for the agent.
     """
     name: str = Field(..., description="Purpose of the agent")
-    model_name: str = Field(..., description="Model to be used by the agent")
+    model_name: str = Field(default=None, description="Model to be used by the agent")
     debug: bool = Field(default=False, description="Enable debug mode for the agent")
     message_logger: str = Field(default=None, description="Logger to be used for the agent messages. None, mongodb or postgres")
 
@@ -31,8 +31,11 @@ class Agent(BaseModel):
         :param config: Configuration for the agent.
         """
         super().__init__(config=config)
-        self.llm = get_llm_wrapper(config.model_name, multimodal = True)
-        
+        if config.model_name is None:
+            raise ValueError("Model name must be provided in the configuration.")
+
+        self.llm = get_llm_wrapper(config.model_name, multimodal=True)
+
         if config.message_logger == 'mongodb':
             from llm.logger.log_mongodb import LLMLogMongoDB
             self.llm = LLMLogMongoDB(self.llm)

@@ -281,8 +281,8 @@ class Critic(Agent):
             text_critique = text_future.result()
 
         return {
-            'vision_critique': vision_critique,
-            'text_critique': text_critique
+            'vision_critic': vision_critique,
+            'text_critic': text_critique
         }
     
     def act_with_prev_state(self, request: str, action_image: Union[str, Image.Image] = None, action_code: str = None, prev_vision_critique: str = None, prev_text_critique: str = None) -> dict:
@@ -308,6 +308,6 @@ class Critic(Agent):
             text_critique = text_future.result()
             
         return {
-            'vision_critique': vision_critique,
-            'text_critique': text_critique
+            'vision_critic': vision_critique,
+            'text_critic': text_critique
         }
