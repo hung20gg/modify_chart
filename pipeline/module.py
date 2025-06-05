@@ -1,10 +1,10 @@
-
 import os 
 import sys
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(current_dir, '..'))
 from pydantic import Field, BaseModel
-from typing import Optional
+from typing import Optional, Union, Generator
+from PIL import Image
 
 from agent import (
     ActorConfig,
@@ -47,12 +47,75 @@ class Module(BaseModel):
         self.critic = Critic(config=config.critic_config)
 
 
+    def stream_act(self,
+            env: Env,
+            request: str, 
+            image: Union[str, Image.Image] = None, 
+            prev_state_code: str=None, 
+            prev_state_critique: str=None, 
+            run_name: str = '', 
+            tag: str = '') -> Generator[dict, None, None]:
+        
+        """
+        Perform an action with the given parameters.
+
+        :param action: The action to perform.
+        :param image: Optional image input for the actor.
+        :param prev_state_code: Optional previous state code for the actor.
+        :param prev_state_critique: Optional previous state critique for the critic.
+        :return: Result of the action.
+        """
+        # Delegate action to actor and critic
+        actor_result = self.actor.act(request, image, prev_state_code, prev_state_critique)
+        action = actor_result.get('action', request)
+
+        if self.debug:
+            print(f"Actor action: {action}")
+
+        transition = env.step(action, run_name=run_name, tag=tag)
+        if self.actor.config.code == 'html':
+            
+            yield {
+                'language': 'python',
+                'html_code': transition['code'],
+            }
+        elif self.actor.config.code == 'html':
+            yield {
+                'language': self.actor.config.code,
+                'image_file_path': transition['image_file_path'],
+            }
+            
+
+        combined_image = merge_images([image, transition['image_file_path']],
+                                       titles=['Input Image', 'Transition Image'],
+                                       run_name=run_name, 
+                                       tag=tag,
+                                       save_folder=env.config.cache_folder,
+                                       )
+
+        action_code = transition.get('code', None)
+        critic_result = self.critic.act(request,
+                                         action_code=action_code,
+                                         action_image=combined_image)
+        
+        critic_result['score'] = min(critic_result['text_critic']['score'], critic_result['vision_critic']['score'])  # Ensure score is between 0 and 1
+
+        if self.debug:
+            print(f"Critic result: {critic_result}")
+
+        yield {
+            "actor_result": actor_result,
+            "critic_result": critic_result,
+            "output_image": transition['image_file_path']  # Add this line to return the output image path
+        }
+        
+        
     def act(self,
             env: Env,
             request: str, 
-            image=None, 
-            prev_state_code=None, 
-            prev_state_critique=None, 
+            image: Union[str, Image.Image] = None, 
+            prev_state_code: str=None, 
+            prev_state_critique: str=None, 
             run_name: str = '', 
             tag: str = '') -> dict:
         
@@ -85,22 +148,27 @@ class Module(BaseModel):
         critic_result = self.critic.act(request,
                                          action_code=action_code,
                                          action_image=combined_image)
+        
+        critic_result['score'] = min(critic_result['text_critic']['score'], critic_result['vision_critic']['score'])  # Ensure score is between 0 and 1
 
         if self.debug:
             print(f"Critic result: {critic_result}")
 
         return {
             "actor_result": actor_result,
-            "critic_result": critic_result
+            "critic_result": critic_result,
+            "output_image": transition['image_file_path']  # Add this line to return the output image path
         }
     
 
     def act_with_prev_state(self,
             env: Env, 
             request: str, 
-            image=None, 
-            prev_state_code=None, 
-            prev_state_critique=None, 
+            image: Union[str, Image.Image] = None,
+            prev_image: Union[str, Image.Image] = None,
+            prev_state_code: str=None, 
+            prev_text_critique: str=None,
+            prev_vision_critique: str=None, 
             run_name: str = '', 
             tag: str = '') -> dict:
         """
@@ -112,7 +180,50 @@ class Module(BaseModel):
         :param prev_state_critique: Optional previous state critique for the critic.
         :return: Result of the action.
         """
-        pass
+        
+        prev_state_critique = "### Vision Critique:\n" + (prev_vision_critique or '') + "\n\n### Text Critique:\n" + (prev_text_critique or '')
+        
+        actor_result = self.actor.act_with_prev_state(request, image, prev_state_code, prev_state_critique)
+        action = actor_result.get('action', request)
+
+        if self.debug:
+            print(f"Actor action: {action}")
+
+        transition = env.step(action, run_name=run_name, tag=tag)
+
+        if prev_image is not None:
+            images = [image, prev_image, transition['image_file_path']]
+            titles = ['Input Image', 'Previous Image', 'Transition Image']
+        else:
+            images = [image, transition['image_file_path']]
+            titles = ['Input Image', 'Transition Image']
+
+
+        combined_image = merge_images(images,
+                                       titles=titles,
+                                       run_name=run_name, 
+                                       tag=tag,
+                                       save_folder=env.config.cache_folder,
+                                       )
+
+        action_code = transition.get('code', None)
+        critic_result = self.critic.act_with_prev_state(request,
+                                                        action_code=action_code,
+                                                        action_image=combined_image,
+                                                        prev_vision_critique=prev_vision_critique,
+                                                        prev_text_critique=prev_text_critique
+                                                        )
+        
+        critic_result['score'] = min(critic_result['text_critic']['score'], critic_result['vision_critic']['score'])  # Ensure score is between 0 and 1
+
+        if self.debug:
+            print(f"Critic result: {critic_result}")
+
+        return {
+            "actor_result": actor_result,
+            "critic_result": critic_result,
+            "output_image": transition['image_file_path']  # Add this line to return the output image path
+        }
 
     def __str__(self):
         """

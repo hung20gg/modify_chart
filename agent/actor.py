@@ -59,6 +59,9 @@ class Actor(Agent):
         :param prev_state_critique: Previous state critique.
         :return: Formatted Python prompt.
         """
+        prev_state_code = f"### Previous code for chart: \n\n```{self.config.code}\n{prev_state_code}\n```"
+        prev_state_critique = f"### Previous critique on the chart: \n\n{prev_state_critique}\n" if prev_state_critique else ""
+        
         return f"""
 <image>
 ### Code language: python
@@ -66,23 +69,24 @@ class Actor(Agent):
 ### Task: 
 {action}
 
-{ f"### Previous code for chart: \n\n```{self.config.code}\n{prev_state_code}\n```" if prev_state_code else "" }
-{ f"### Previous critique on the chart: \n\n{prev_state_critique}\n" if prev_state_critique else "" }
-"""
+{ prev_state_code if prev_state_code else "" }
+{ prev_state_critique if prev_state_critique else "" }"""
 
 
     def html_prompt(self, action: str, prev_state_code: str = None, prev_state_critique: str = None):
 
-         return f"""
+        prev_state_code = f"### Previous code for chart: \n\n```{self.config.code}\n{prev_state_code}\n```"
+        prev_state_critique = f"### Previous critique on the chart: \n\n{prev_state_critique}\n" if prev_state_critique else ""
+
+        return f"""
 <image>
 ### Code language: html
 
 ### Task: 
 {action}
 
-{ f"### Previous code for chart: \n\n```{self.config.code}\n{prev_state_code}\n```" if prev_state_code else "" }
-{ f"### Previous critique on the chart: \n\n{prev_state_critique}\n" if prev_state_critique else "" }
-"""
+{ prev_state_code if prev_state_code else "" }
+{ prev_state_critique if prev_state_critique else "" }"""
 
 
     def act(self, request: str, image : Union[str, Image.Image] = None, prev_state_code: str = None, prev_state_critique: str = None) -> dict:
@@ -114,7 +118,7 @@ class Actor(Agent):
             })
         content.append({
             'type': 'text',
-            'text': user_prompt
+            'text': user_prompt.strip()
         })
 
         messages = [

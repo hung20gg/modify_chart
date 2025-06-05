@@ -91,6 +91,8 @@ class VisionCritic(Agent):
 
         # Implement the logic for vision critique here
         sys_prompt = get_sys_prompt(self.config.module_name)
+        
+        prev_vision_critique = f"### Previous critique on the image: \n\n{prev_vision_critique}\n" if prev_vision_critique else ""
 
         user_prompt = f"""
 <image>
@@ -98,7 +100,7 @@ class VisionCritic(Agent):
 ### Task:
 {request}
 
-{ f"### Previous critique on the image: \n\n{prev_vision_critique}\n" if prev_vision_critique else "" }
+{ prev_vision_critique if prev_vision_critique else "" }
 """
 
         messages = [
@@ -115,7 +117,7 @@ class VisionCritic(Agent):
                     },
                     {
                         'type': 'text',
-                        'text': user_prompt
+                        'text': user_prompt.strip()
                     }
                 ]
             }
@@ -184,15 +186,19 @@ class TextCritic(Agent):
         sys_prompt = get_sys_prompt(self.config.module_name)
         sys_prompt += f"\n\n### Code language: {self.config.code}\n"
 
+        action_code = f"### Code: \n\n```{self.config.code}\n{action_code}\n```"
+        prev_code = f"### Previous code: \n\n```{self.config.code}\n{prev_code}\n```" if prev_code else ""
+        prev_code_critique = f"### Previous critique on the code: \n\n{prev_code_critique}\n" if prev_code_critique else ""
+
         user_prompt = f"""
 ### Task:
 {request}
 
-{ f"### Code: \n\n```{self.config.code}\n{action_code}\n```" if action_code else "" }
+{ action_code if action_code else "" }
 
-{ f"### Previous code: \n\n```{self.config.code}\n{prev_code}\n```" if prev_code else "" }
+{ prev_code if prev_code else "" }
 
-{ f"### Previous critique on the code: \n\n{prev_code_critique}\n" if prev_code_critique else "" }
+{ prev_code_critique if prev_code_critique else "" }
 """
 
         messages = [
@@ -202,7 +208,7 @@ class TextCritic(Agent):
             },
             {
                 'role': 'user',
-                'content': user_prompt
+                'content': user_prompt.strip()
             }
         ]
 
@@ -219,11 +225,12 @@ class TextCritic(Agent):
         sys_prompt = get_sys_prompt(self.config.module_name)
         sys_prompt += f"\n\n### Code language: {self.config.code}\n"
 
+        action_code = f"### Code: \n\n```{self.config.code}\n{action_code}\n```"
         user_prompt = f"""
 ### Task:
 {request}
 
-{ f"### Code: \n\n```{self.config.code}\n{action_code}\n```" if action_code else "" }
+{ action_code if action_code else "" }
 """
 
         messages = [

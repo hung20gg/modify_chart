@@ -7,7 +7,7 @@ from uuid import uuid4
 from pipeline.execution import Env
 from pipeline.module import Module
 
-from typing import Optional, List, Dict, Any, Union
+from typing import Optional, List, Dict, Any, Union, Generator
 from pydantic import BaseModel, Field
 from PIL import Image
 import logging
@@ -74,7 +74,90 @@ class IterativePipeline(BaseModel):
                 'Text critique': result['critic_result']['text_critic']['critique']
             })
             
-            if result['critic_result']['text_critic']['score'] >= 4 and result['critic_result']['vision_critic']['score'] >= 4:
+            if result['critic_result']['score'] >= 4:
+                break
+            
+        
+        return results
+    
+    
+    def stream_act(self, request: str, image: Union[str, Image.Image] = None) -> Generator[str, None, None]:
+        """
+        Run the pipeline with the given inputs.
+        """
+        
+        prev_state_critique = None
+        prev_state_code = None
+        
+        results = []
+        
+        for i in range(self.max_iterations):
+            result = None
+            for chunk in self.module.stream_act(
+                env=self.env,
+                request=request,
+                image=image,
+                prev_state_code=prev_state_code,
+                prev_state_critique=prev_state_critique,
+                run_name=self.run_name,
+                tag=f"stream_{self.tag}_iteration_{i + 1}"
+            ):
+                result = chunk
+                if 'critic_result' in chunk:
+                    results.append(chunk)
+                else:
+                    yield chunk
+
+
+            if self.debug:
+                print(f"Iteration {i + 1}: {result}")
+
+
+            prev_state_code = result['actor_result']['action']
+            prev_state_critique = self.concatenate_critiques({
+                'Vision critique': result['critic_result']['vision_critic']['critique'],
+                'Text critique': result['critic_result']['text_critic']['critique']
+            })
+            
+            if result['critic_result']['score'] >= 4:
+                break
+            
+        
+        yield '\n\n[FINISHED]'
+    
+    
+    def act_with_prev_state(self, request: str, image: Union[str, Image.Image] = None, prev_state_code: str = None, prev_state_critique: str = None) -> Dict[str, Any]:
+        """
+        Run the pipeline with the given inputs and previous state.
+        """
+        prev_state_critique = None
+        prev_state_code = None
+        
+        results = []
+        
+        for i in range(self.max_iterations):
+            result = self.module.act(
+                env=self.env,
+                request=request,
+                image=image,
+                prev_state_code=prev_state_code,
+                prev_state_critique=prev_state_critique,
+                run_name=self.run_name,
+                tag=f"{self.tag}_iteration_{i + 1}"
+            )
+
+            if self.debug:
+                print(f"Iteration {i + 1}: {result}")
+
+            results.append(result)
+
+            prev_state_code = result['actor_result']['action']
+            prev_state_critique = self.concatenate_critiques({
+                'Vision critique': result['critic_result']['vision_critic']['critique'],
+                'Text critique': result['critic_result']['text_critic']['critique']
+            })
+            
+            if result['critic_result']['score'] >= 4:
                 break
             
         
