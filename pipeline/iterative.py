@@ -83,7 +83,7 @@ class IterativePipeline(BaseModel):
     
     def stream_act(self, request: str, image: Union[str, Image.Image] = None) -> Generator[str, None, None]:
         """
-        Run the pipeline with the given inputs.
+        Run the pipeline with the given inputs in a streaming manner.
         """
         
         prev_state_critique = None
@@ -92,7 +92,12 @@ class IterativePipeline(BaseModel):
         results = []
         
         for i in range(self.max_iterations):
+            if self.debug:
+                print(f"Starting iteration {i + 1}")
+            
             result = None
+            error_occurred = False
+            
             for chunk in self.module.stream_act(
                 env=self.env,
                 request=request,
@@ -102,16 +107,53 @@ class IterativePipeline(BaseModel):
                 run_name=self.run_name,
                 tag=f"stream_{self.tag}_iteration_{i + 1}"
             ):
-                result = chunk
-                if 'critic_result' in chunk:
+                # Handle error cases
+                if chunk.get('status') == 'error':
+                    error_occurred = True
+                    yield {
+                        'iteration': i + 1,
+                        'status': 'error',
+                        'error': chunk.get('error'),
+                        'message': chunk.get('message'),
+                        'language': chunk.get('language', 'python')
+                    }
+                    break
+                
+                # Store the final result when it contains critic_result
+                elif chunk.get('status') == 'completed':
+                    result = chunk
                     results.append(chunk)
+                    # Yield the complete iteration result
+                    yield {
+                        'iteration': i + 1,
+                        'status': 'iteration_completed',
+                        'result': chunk,
+                        'language': chunk.get('language', 'python'),
+                        'image_file_path': chunk.get('output_image'),
+                        'html_code': chunk.get('html_code'),
+                        'score': chunk['critic_result']['score']
+                    }
                 else:
-                    yield chunk
-
+                    # Yield intermediate status updates
+                    yield {
+                        'iteration': i + 1,
+                        'status': chunk.get('status', 'processing'),
+                        'language': chunk.get('language', 'python'),
+                        'image_file_path': chunk.get('image_file_path'),
+                        'html_code': chunk.get('html_code')
+                    }
 
             if self.debug:
                 print(f"Iteration {i + 1}: {result}")
 
+            # Break if error occurred or no result
+            if error_occurred or result is None:
+                if self.debug:
+                    if error_occurred:
+                        print(f"Error occurred in iteration {i + 1}, stopping pipeline")
+                    else:
+                        print(f"No result from iteration {i + 1}, breaking")
+                break
 
             prev_state_code = result['actor_result']['action']
             prev_state_critique = self.concatenate_critiques({
@@ -119,11 +161,17 @@ class IterativePipeline(BaseModel):
                 'Text critique': result['critic_result']['text_critic']['critique']
             })
             
+            # Check if we've reached a good enough score
             if result['critic_result']['score'] >= 4:
+                if self.debug:
+                    print(f"Score threshold reached: {result['critic_result']['score']}")
                 break
             
-        
-        yield '\n\n[FINISHED]'
+        yield {
+            'status': 'finished',
+            'total_iterations': len(results),
+            'results': results
+        }
     
     
     def act_with_prev_state(self, request: str, image: Union[str, Image.Image] = None, prev_state_code: str = None, prev_state_critique: str = None) -> Dict[str, Any]:

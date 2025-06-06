@@ -127,7 +127,7 @@ def merge_images(
     
     # Load font for titles
     try:
-        font = ImageFont.truetype("arial.ttf", 24)
+        font = ImageFont.truetype("arial.ttf", 36)
     except:
         font = ImageFont.load_default()
     

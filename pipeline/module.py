@@ -57,57 +57,104 @@ class Module(BaseModel):
             tag: str = '') -> Generator[dict, None, None]:
         
         """
-        Perform an action with the given parameters.
+        Perform an action with the given parameters in a streaming manner.
 
-        :param action: The action to perform.
+        :param env: Environment to execute actions in
+        :param request: The request/action to perform.
         :param image: Optional image input for the actor.
         :param prev_state_code: Optional previous state code for the actor.
         :param prev_state_critique: Optional previous state critique for the critic.
-        :return: Result of the action.
+        :param run_name: Name of the run for tracking
+        :param tag: Tag for the run
+        :return: Generator yielding intermediate and final results.
         """
-        # Delegate action to actor and critic
-        actor_result = self.actor.act(request, image, prev_state_code, prev_state_critique)
-        action = actor_result.get('action', request)
+        try:
+            # Step 1: Get actor result
+            actor_result = self.actor.act(request, image, prev_state_code, prev_state_critique)
+            action = actor_result.get('action', request)
 
-        if self.debug:
-            print(f"Actor action: {action}")
+            if self.debug:
+                print(f"Actor action: {action}")
 
-        transition = env.step(action, run_name=run_name, tag=tag)
-        if self.actor.config.code == 'html':
-            
+            # Yield intermediate result with actor action
             yield {
-                'language': 'python',
-                'html_code': transition['code'],
+                "status": "actor_completed",
+                "actor_result": actor_result,
+                "language": self.actor.config.code
             }
-        elif self.actor.config.code == 'html':
+
+            # Check if action is empty or invalid
+            if not action or action.strip() == "":
+                yield {
+                    "status": "error",
+                    "error": "Actor returned empty action",
+                    "message": "Actor failed to generate valid code. This might be due to API limits or model issues."
+                }
+                return
+
+            # Step 2: Execute in environment
+            try:
+                transition = env.step(action, run_name=run_name, tag=tag)
+            except ValueError as e:
+                # Handle environment errors (like unsupported language)
+                yield {
+                    "status": "error",
+                    "error": str(e),
+                    "message": "Environment failed to execute the action. The generated code might be invalid."
+                }
+                return
+            
+            # Yield intermediate result with environment transition
+            if self.actor.config.code == 'html':
+                yield {
+                    'status': 'environment_executed',
+                    'language': 'html',
+                    'html_code': transition['code'],
+                    'image_file_path': transition.get('image_file_path', None)
+                }
+            elif self.actor.config.code == 'python':
+                yield {
+                    'status': 'environment_executed',
+                    'language': 'python',
+                    'image_file_path': transition['image_file_path'],
+                    'code': transition.get('code', None)
+                }
+
+            # Step 3: Create combined image for critic
+            combined_image = merge_images([image, transition['image_file_path']],
+                                           titles=['Input Image', 'Transition Image'],
+                                           run_name=run_name, 
+                                           tag=tag,
+                                           save_folder=env.config.cache_folder,
+                                           )
+
+            # Step 4: Get critic result
+            action_code = transition.get('code', None)
+            critic_result = self.critic.act(request,
+                                             action_code=action_code,
+                                             action_image=combined_image)
+            
+            critic_result['score'] = min(critic_result['text_critic']['score'], critic_result['vision_critic']['score'])
+
+            if self.debug:
+                print(f"Critic result: {critic_result}")
+
+            # Step 5: Yield final complete result
             yield {
-                'language': self.actor.config.code,
-                'image_file_path': transition['image_file_path'],
+                "status": "completed",
+                "actor_result": actor_result,
+                "critic_result": critic_result,
+                "output_image": transition['image_file_path'],
+                "language": self.actor.config.code
             }
             
-
-        combined_image = merge_images([image, transition['image_file_path']],
-                                       titles=['Input Image', 'Transition Image'],
-                                       run_name=run_name, 
-                                       tag=tag,
-                                       save_folder=env.config.cache_folder,
-                                       )
-
-        action_code = transition.get('code', None)
-        critic_result = self.critic.act(request,
-                                         action_code=action_code,
-                                         action_image=combined_image)
-        
-        critic_result['score'] = min(critic_result['text_critic']['score'], critic_result['vision_critic']['score'])  # Ensure score is between 0 and 1
-
-        if self.debug:
-            print(f"Critic result: {critic_result}")
-
-        yield {
-            "actor_result": actor_result,
-            "critic_result": critic_result,
-            "output_image": transition['image_file_path']  # Add this line to return the output image path
-        }
+        except Exception as e:
+            # Handle any unexpected errors
+            yield {
+                "status": "error",
+                "error": str(e),
+                "message": f"Unexpected error during streaming action: {str(e)}"
+            }
         
         
     def act(self,
