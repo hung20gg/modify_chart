@@ -95,6 +95,7 @@ class Module(BaseModel):
             # Step 2: Execute in environment
             try:
                 transition = env.step(action, run_name=run_name, tag=tag)
+                print(f"Transition: {transition}")
             except ValueError as e:
                 # Handle environment errors (like unsupported language)
                 yield {

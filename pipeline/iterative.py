@@ -91,9 +91,10 @@ class IterativePipeline(BaseModel):
         
         results = []
         
-        for i in range(self.max_iterations):
+        current_iteration = 1
+        while current_iteration <= self.max_iterations:
             if self.debug:
-                print(f"Starting iteration {i + 1}")
+                print(f"Starting iteration {current_iteration}")
             
             result = None
             error_occurred = False
@@ -105,55 +106,34 @@ class IterativePipeline(BaseModel):
                 prev_state_code=prev_state_code,
                 prev_state_critique=prev_state_critique,
                 run_name=self.run_name,
-                tag=f"stream_{self.tag}_iteration_{i + 1}"
+                tag=f"stream_{self.tag}_iteration_{current_iteration}"
             ):
                 # Handle error cases
                 if chunk.get('status') == 'error':
                     error_occurred = True
-                    yield {
-                        'iteration': i + 1,
-                        'status': 'error',
-                        'error': chunk.get('error'),
-                        'message': chunk.get('message'),
-                        'language': chunk.get('language', 'python')
-                    }
-                    break
-                
-                # Store the final result when it contains critic_result
-                elif chunk.get('status') == 'completed':
-                    result = chunk
-                    results.append(chunk)
-                    # Yield the complete iteration result
-                    yield {
-                        'iteration': i + 1,
-                        'status': 'iteration_completed',
-                        'result': chunk,
-                        'language': chunk.get('language', 'python'),
-                        'image_file_path': chunk.get('output_image'),
-                        'html_code': chunk.get('html_code'),
-                        'score': chunk['critic_result']['score']
-                    }
-                else:
+                    
                     # Yield intermediate status updates
-                    yield {
-                        'iteration': i + 1,
-                        'status': chunk.get('status', 'processing'),
-                        'language': chunk.get('language', 'python'),
-                        'image_file_path': chunk.get('image_file_path'),
-                        'html_code': chunk.get('html_code')
-                    }
+                yield {
+                    'iteration': current_iteration,
+                    **chunk,
+                }
+
+                if chunk.get('status') == 'completed':
+                    result = chunk
+                    break
 
             if self.debug:
-                print(f"Iteration {i + 1}: {result}")
+                print(f"Iteration {current_iteration}: {result}")
 
             # Break if error occurred or no result
             if error_occurred or result is None:
                 if self.debug:
                     if error_occurred:
-                        print(f"Error occurred in iteration {i + 1}, stopping pipeline")
+                        print(f"Error occurred in iteration {current_iteration}, stopping pipeline")
                     else:
-                        print(f"No result from iteration {i + 1}, breaking")
+                        print(f"No result from iteration {current_iteration}, breaking")
                 break
+
 
             prev_state_code = result['actor_result']['action']
             prev_state_critique = self.concatenate_critiques({
@@ -167,10 +147,13 @@ class IterativePipeline(BaseModel):
                     print(f"Score threshold reached: {result['critic_result']['score']}")
                 break
             
+            current_iteration += 1
+
         yield {
             'status': 'finished',
             'total_iterations': len(results),
-            'results': results
+            'results': results,
+            'iteration': current_iteration,
         }
     
     
