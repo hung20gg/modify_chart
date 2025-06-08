@@ -33,8 +33,8 @@ if __name__ == "__main__":
     else:
         raise ValueError(f"Unsupported language: {language}. Expected 'html' or 'python'.")
     
-    code_model = 'gemini-2.0-flash-lite'
-    vision_model = 'gemini-2.0-flash'
+    code_model = 'google:gemma-3-4b-it'
+    vision_model = 'gemini-2.5-flash-preview-05-20'
 
     # Create a module configuration
     actor_config = ActorConfig(name="Test Actor", model_name=code_model, code=language)
@@ -49,14 +49,10 @@ if __name__ == "__main__":
     # Create an iterative pipeline
     pipeline = IterativePipeline(module=module, env=env, run_name=run_name, debug=True)
 
-    task =   """Alpha: (2000, 50,000), (2005, 60,000), (2010, 65,000), (2020, 80,000)
-Beta: (2000, 30,000), (2008, 40,000), (2015, 50,000), (2020, 55,000)
-Gamma: (2000, 20,000), (2004, 25,000), (2012, 35,000), (2018, 45,000)
-
-    regenerate the chart. Change title to "Salary Over Time" with x-axis label "Year" and y-axis label "Salary".
+    task =   """Change the chart type to bar chart and change the title to 'Financial Sector Performance'.
     """
     
-    image_path = os.path.join(current_dir, '..', 'example', 'actor_chart.png')
+    image_path = os.path.join(current_dir, '..', 'example', '112026.png')
 
     # # Run the pipeline with a test request
     # result = pipeline.act(request=task, image=image_path)

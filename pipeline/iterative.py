@@ -91,8 +91,9 @@ class IterativePipeline(BaseModel):
         
         results = []
         
-        current_iteration = 1
+        current_iteration = 0
         while current_iteration <= self.max_iterations:
+            current_iteration += 1
             if self.debug:
                 print(f"Starting iteration {current_iteration}")
             
@@ -141,13 +142,20 @@ class IterativePipeline(BaseModel):
                 'Text critique': result['critic_result']['text_critic']['critique']
             })
             
+
+            yield {
+                'status': 'score',
+                'iteration': current_iteration,
+                'score': result['critic_result']['score'],
+            }
+
             # Check if we've reached a good enough score
             if result['critic_result']['score'] >= 4:
                 if self.debug:
                     print(f"Score threshold reached: {result['critic_result']['score']}")
                 break
             
-            current_iteration += 1
+
 
         yield {
             'status': 'finished',

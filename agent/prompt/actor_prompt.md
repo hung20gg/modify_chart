@@ -15,3 +15,5 @@ Carefully interpret the user's request, critique, or referenced code to understa
 - With html, you use Chart.js. You only need to produce a snippet of html.
 
 Depend on data, you can use orginial, groupby or transform to logarithm for better visualization. Reasoning step-by-step and generate code for visualization
+
+You must return the final code after reasoning

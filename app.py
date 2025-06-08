@@ -21,6 +21,29 @@ st.title("Iterative Chart Generator")
 st.sidebar.header("Configuration")
 st.session_state.model_type = st.sidebar.selectbox("Select Languge Type", ["python", "html"], index=0)
 
+model_choices = [
+    "gpt-4o", 
+    "gpt-4.1-mini", 
+    "gpt-4.1", 
+    "gemini-2.0-flash", 
+    'nim:meta/llama-4-maverick-17b-128e-instruct', 
+    'nim:meta/llama-3.2-11b-vision-instruct',
+    'nim:meta/llama-3.2-90b-vision-instruct',
+    'nim:google/gemma-3-27b-it',
+    'google:gemma-3-27b-it'
+]
+
+st.sidebar.header("Model Configuration")
+vision_model = st.sidebar.selectbox(
+    "Vision Model", 
+    model_choices,
+    index=0
+)
+code_model = st.sidebar.selectbox(
+    "Code Generation Model", 
+    model_choices,
+    index=0
+)
 
 # User input
 st.header("Input")
@@ -40,19 +63,19 @@ if st.button("Generate Charts"):
             f.write(input_image.read())
 
     # Build configs
-    if st.session_state.model_type  == "python":
-        actor_config = ActorConfig(name="Actor", model_name="gpt-4.1-mini", code='python')
-        vision_critic_config = VisionCriticConfig(name="Vision Critic", model_name="gpt-4o")
-        text_critic_config = TextCriticConfig(name="Text Critic", model_name="gpt-4o", code='python')
-        critic_config = CriticConfig(name="Critic", vision=vision_critic_config, text=text_critic_config, model_name="gpt-4.1-mini")
+    if st.session_state.model_type == "python":
+        actor_config = ActorConfig(name="Actor", model_name=code_model, code='python')
+        vision_critic_config = VisionCriticConfig(name="Vision Critic", model_name=vision_model)
+        text_critic_config = TextCriticConfig(name="Text Critic", model_name=vision_model, code='python')
+        critic_config = CriticConfig(name="Critic", vision=vision_critic_config, text=text_critic_config, model_name=code_model)
         module_config = ModuleConfig(name="Module", actor_config=actor_config, critic_config=critic_config)
         module = Module(config=module_config)
         env = PythonEnv(config=PythonEnvConfig(name="Python Environment"))
     else:
-        actor_config = ActorConfig(name="Actor", model_name="gpt-4.1-mini", code='html')
-        vision_critic_config = VisionCriticConfig(name="Vision Critic", model_name="gpt-4o")
-        text_critic_config = TextCriticConfig(name="Text Critic", model_name="gpt-4o", code='html')
-        critic_config = CriticConfig(name="Critic", vision=vision_critic_config, text=text_critic_config, model_name="gpt-4.1-mini")
+        actor_config = ActorConfig(name="Actor", model_name=code_model, code='html')
+        vision_critic_config = VisionCriticConfig(name="Vision Critic", model_name=vision_model)
+        text_critic_config = TextCriticConfig(name="Text Critic", model_name=vision_model, code='html')
+        critic_config = CriticConfig(name="Critic", vision=vision_critic_config, text=text_critic_config, model_name=code_model)
         module_config = ModuleConfig(name="Module", actor_config=actor_config, critic_config=critic_config)
         module = Module(config=module_config)
         env = HtmlEnv(config=HtmlEnvConfig(name="HTML Environment"))
@@ -75,7 +98,7 @@ if st.button("Generate Charts"):
     current_iteration = 0
 
     for idx, chunk in enumerate(image_generator):
-        if idx >= max_iterations:
+        if current_iteration >= max_iterations:
             st.warning("Maximum iterations reached.")
             break
 
@@ -85,6 +108,10 @@ if st.button("Generate Charts"):
         logs_placeholder.markdown("\n\n".join(all_logs))
 
         if chunk.get('status') == 'finished':
+            continue
+
+        if chunk.get('status') == 'score':
+            st.markdown(f"Iteration {current_iteration} scored: {chunk.get('score', 'N/A')}")
             continue
         
         language = chunk.get('language', 'python')
@@ -103,8 +130,7 @@ if st.button("Generate Charts"):
             html_content = chunk.get('html_code', None)
             if html_content:
                 # with cols[idx]:
-                container_width = st.container().width
-                container_height = int(container_width * 0.6667)  # 3:2 aspect ratio
+                
                 
                 # Add responsive wrapper to the HTML content
                 responsive_html = f"""
@@ -116,7 +142,7 @@ if st.button("Generate Charts"):
                 """
                 
                 # Display the HTML with responsive container
-                components.html(responsive_html, height=container_height, scrolling=False)  
+                components.html(responsive_html, height=600, scrolling=True)  
                 with st.expander(f"HTML Code - Iteration {current_iteration}", expanded=False):
                     st.code(html_content, language='html')
                 

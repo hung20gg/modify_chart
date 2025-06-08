@@ -6,6 +6,8 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from llm import get_llm_wrapper, get_rotate_llm_wrapper
+from llm.logger.log_mongodb import LLMLogMongoDB
+from llm.logger.log_postgres import LLMLogPostgres
 
 class AgentConfig(BaseModel):
     """
@@ -15,7 +17,7 @@ class AgentConfig(BaseModel):
     model_name: str = Field(default=None, description="Model to be used by the agent")
     debug: bool = Field(default=False, description="Enable debug mode for the agent")
     message_logger: str = Field(default=None, description="Logger to be used for the agent messages. None, mongodb or postgres")
-
+    rotate: bool = Field(default=False, description="Enable rotation of the model for the agent")
 class Agent(BaseModel):
     """
     Represents an agent that can perform actions based on the provided configuration.
@@ -34,7 +36,10 @@ class Agent(BaseModel):
         if config.model_name is None:
             raise ValueError("Model name must be provided in the configuration.")
 
-        self.llm = get_llm_wrapper(config.model_name, multimodal=True)
+        if config.rotate:
+            self.llm = get_rotate_llm_wrapper(config.model_name, multimodal=True)
+        else:
+            self.llm = get_llm_wrapper(config.model_name, multimodal=True)
 
         if config.message_logger == 'mongodb':
             from llm.logger.log_mongodb import LLMLogMongoDB

@@ -54,8 +54,8 @@ class Module(BaseModel):
             prev_state_code: str=None, 
             prev_state_critique: str=None, 
             run_name: str = '', 
-            tag: str = '') -> Generator[dict, None, None]:
-        
+            tag: str = '', **kwargs) -> Generator[dict, None, None]:
+
         """
         Perform an action with the given parameters in a streaming manner.
 
@@ -165,8 +165,8 @@ class Module(BaseModel):
             prev_state_code: str=None, 
             prev_state_critique: str=None, 
             run_name: str = '', 
-            tag: str = '') -> dict:
-        
+            tag: str = '', **kwargs) -> dict:
+
         """
         Perform an action with the given parameters.
 
@@ -193,6 +193,7 @@ class Module(BaseModel):
                                        )
 
         action_code = transition.get('code', None)
+        combined_image_path = transition.get('image_file_path', None)
         critic_result = self.critic.act(request,
                                          action_code=action_code,
                                          action_image=combined_image)
@@ -218,7 +219,7 @@ class Module(BaseModel):
             prev_text_critique: str=None,
             prev_vision_critique: str=None, 
             run_name: str = '', 
-            tag: str = '') -> dict:
+            tag: str = '', **kwargs) -> dict:
         """
         Perform an action with the given parameters, considering previous state.
 

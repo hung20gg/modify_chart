@@ -9,8 +9,9 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from agent.base import AgentConfig, Agent
 from agent.prompt.get_sys_prompt import get_sys_prompt
-
-from llm.llm_utils import get_json_from_text_response
+from utils import open_image, extract_critique_and_score
+import logging
+logging.basicConfig(level=logging.INFO)
 
 class EvaluatorConfig(AgentConfig):
     """
@@ -63,11 +64,7 @@ class Evaluator(Agent):
 
         response = self.llm(messages)
 
-        try:
-            return get_json_from_text_response(response, new_method=True)['score']
-        except Exception as e:
-            logging.error(f"Error parsing LLM response: {e}. Score is set to -1.")
-            return -1
+        return response
 
 
     def act(self, request: str, image : Union[str, Image.Image]) -> dict:
@@ -85,4 +82,4 @@ class Evaluator(Agent):
             image = Image.open(image)
 
 
-        pass
+        return extract_critique_and_score(self.llm_score(image))
