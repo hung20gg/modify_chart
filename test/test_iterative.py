@@ -24,7 +24,7 @@ from pipeline.execution import HtmlEnv, HtmlEnvConfig, PythonEnv, PythonEnvConfi
 
 if __name__ == "__main__":
     
-    language = 'python'  # or 'python'
+    language = 'html'  # or 'python'
     
     if language == 'html':
         env = HtmlEnv(config=HtmlEnvConfig(name="HTML Environment"))
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     else:
         raise ValueError(f"Unsupported language: {language}. Expected 'html' or 'python'.")
     
-    code_model = 'google:gemma-3-4b-it'
+    code_model = 'nim:meta/llama-4-maverick-17b-128e-instruct'
     vision_model = 'gemini-2.5-flash-preview-05-20'
 
     # Create a module configuration

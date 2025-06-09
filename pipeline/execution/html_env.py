@@ -27,7 +27,7 @@ class HtmlEnvConfig(EnvConfig):
     cache_folder: str = Field(default=os.path.join(current_dir, '..', '..', 'temp', 'html'), description="Folder to cache HTML files")
     viewport_width: int = Field(default=1200, description="Viewport width for rendering")
     viewport_height: int = Field(default=800, description="Viewport height for rendering")
-    render_wait_time: float = Field(default=2.0, description="Time to wait for rendering to complete (seconds)")
+    render_wait_time: float = Field(default=0.5, description="Time to wait for rendering to complete (seconds)")
 
 class HtmlEnv(Env):
     """
@@ -85,9 +85,26 @@ class HtmlEnv(Env):
             # Wait for JavaScript to execute
             time.sleep(self.config.render_wait_time)
             
-            # Take screenshot
+            # Get original window size
+            original_size = HtmlEnv.selenium_driver.get_window_size()
+            
+            # Get the required dimensions with JavaScript
+            required_width = HtmlEnv.selenium_driver.execute_script('return document.body.parentNode.scrollWidth')
+            required_height = HtmlEnv.selenium_driver.execute_script('return document.body.parentNode.scrollHeight')
+            
+            min_height = int(required_width * 0.75)
+            required_height = max(int(required_height * 1.1), min_height)
+
+            # Set the window size to capture everything
+            HtmlEnv.selenium_driver.set_window_size(required_width, required_height)
+            
+            # Take screenshot of the entire page
             HtmlEnv.selenium_driver.save_screenshot(image_file_path)
-            print(f"Screenshot saved to {image_file_path}")
+            
+            # Reset the window size to original dimensions
+            HtmlEnv.selenium_driver.set_window_size(original_size['width'], original_size['height'])
+            
+            print(f"Full page screenshot saved to {image_file_path} (dimensions: {required_width}x{required_height})")
             return True
         except Exception as e:
             print(f"Selenium rendering failed: {e}")
