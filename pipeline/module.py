@@ -30,6 +30,7 @@ class ModuleConfig(BaseModel):
     module_name: str = 'module'
     actor_config: ActorConfig = Field(default_factory=ActorConfig, description="Configuration for the actor module")
     critic_config: CriticConfig = Field(default_factory=CriticConfig, description="Configuration for the critic module")
+    image_path: Optional[bool] = Field(default=False, description="Whether to force use image_path to communicate with the agent, default is False")
 
 class Module(BaseModel):
     """
@@ -190,10 +191,11 @@ class Module(BaseModel):
                                        run_name=run_name, 
                                        tag=tag,
                                        save_folder=env.config.cache_folder,
+                                       return_path=self.config.image_path
                                        )
 
         action_code = transition.get('code', None)
-        combined_image_path = transition.get('image_file_path', None)
+        
         critic_result = self.critic.act(request,
                                          action_code=action_code,
                                          action_image=combined_image)
@@ -253,6 +255,7 @@ class Module(BaseModel):
                                        run_name=run_name, 
                                        tag=tag,
                                        save_folder=env.config.cache_folder,
+                                       return_path=self.config.image_path
                                        )
 
         action_code = transition.get('code', None)

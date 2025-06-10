@@ -18,6 +18,7 @@ class AgentConfig(BaseModel):
     debug: bool = Field(default=False, description="Enable debug mode for the agent")
     message_logger: str = Field(default=None, description="Logger to be used for the agent messages. None, mongodb or postgres")
     rotate: bool = Field(default=False, description="Enable rotation of the model for the agent")
+    image_path: Optional[bool] = Field(default=False, description="Whether to force use image_path to communicate with the agent, default is False")
 class Agent(BaseModel):
     """
     Represents an agent that can perform actions based on the provided configuration.

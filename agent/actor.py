@@ -96,6 +96,10 @@ class Actor(Agent):
         :param request: The action to perform.
         :return: Result of the action.
         """
+
+        if isinstance(image, Image.Image) and self.config.image_path:
+            raise ValueError("Image should be a path string, since force use image_path is set to True.")
+
         # Placeholder for action logic
         if isinstance(image, str):
             if os.path.exists(image):

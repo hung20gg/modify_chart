@@ -267,6 +267,10 @@ class Critic(Agent):
 
 
     def act(self, request: str, action_image: Union[str, Image.Image] = None, action_code: str = None) -> dict:
+        
+        if isinstance(action_image, Image.Image) and self.config.image_path:
+            raise ValueError("Image should be a path string, since force use image_path is set to True.")
+        
         """
         Perform an action with the given parameters.
 
@@ -302,6 +306,10 @@ class Critic(Agent):
         :param prev_text_critique: Previous critique on the code.
         :return: Result of the action.
         """
+
+        if isinstance(action_image, Image.Image) and self.config.image_path:
+            raise ValueError("Image should be a path string, since force use image_path is set to True.")
+
         vision_critique = None
         text_critique = None
 

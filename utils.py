@@ -89,7 +89,8 @@ def merge_images(
     run_name: str = '',
     tag: str = '', 
     save_folder: str = '',
-) -> Image.Image:
+    return_path: bool = False
+) -> Union[Image.Image, str, None]:
     """
     Merge a list of images into a single image with specified number of rows.
 
@@ -214,6 +215,15 @@ def merge_images(
             
             draw.text((text_x, text_y), title, fill='black', font=font)
     
+    if return_path:
+        # Save the merged image to a temporary path
+        run_time = time.strftime("%Y%m%d-%H%M%S")
+        output_path = os.path.join(current_dir, 'merged', f"merged_{run_name}_{tag}_{run_time}.png")
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        new_image.save(output_path)
+        print(f"Merged image saved to {output_path}")
+        return output_path
+
     if save_folder:
         
         def save_image_thread(img, folder, r_name, t):

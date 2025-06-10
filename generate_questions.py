@@ -27,6 +27,22 @@ Return ONE command in the following format:
 your command here
 """
 
+extract_table_data_prompt = """
+You are an AI assistant that extracts data from a chart image.
+You will be provided with an image of a chart, and you are tasked to extract the data from the chart.
+You will return the data in markdown table format.
+You will return the data in the following format:
+
+<format>
+### Table Data:
+| Column 1 | Column 2 | Column 3 |
+
+</format>
+
+Note: The table should contain all the data from the chart, including headers.
+
+"""
+
 def get_question(text) -> str:
     """
     Extract questions from the given string.
@@ -77,6 +93,71 @@ def generate_question(llm, image_path: str) -> list[str]:
     with open('chart_modification.jsonl', 'a') as f:
         f.write(json.dumps(result) + '\n')
 
+
+def generate_question_v2(llm, image_path: str) -> list[str]:
+    """
+    Generate questions based on the content of the image.
+    """
+    image = open_image(image_path)
+
+
+    table_messages = [
+        {
+            'role': 'system',
+            'content': extract_table_data_prompt
+        },
+        {
+            'role': 'user',
+            'content': [
+                {
+                    'type': 'image',
+                    'image': image
+                },
+                {
+                    'type': 'text',
+                    'text': "Please extract the data from the chart and return it in markdown table format."
+                }
+            ]
+        }
+    ]
+    table_response = llm(table_messages)
+    table_data = table_response.split('### Table Data:')[1].strip() if '### Table Data:' in table_response else table_response.strip()
+    table_data = table_data.replace('<format>', '').replace('</format>', '').strip()
+
+
+    messages = [
+        {
+            'role': 'system',
+            'content': generate_questions_prompt
+        },
+        {
+            'role': 'user',
+            'content': [
+                {
+                    'type': 'image',
+                    'image': image
+                },
+                {
+                    'type': 'text',
+                    'text': "Please generate a command to modify the chart."
+                }
+            ]
+        }
+    ]
+
+    response = llm(messages)
+    question = get_question(response)
+
+    result = {
+        'question': question,
+        'table_data': table_data,
+        'image_path': image_path
+    }
+
+    with open('chart_modification.jsonl', 'a') as f:
+        f.write(json.dumps(result) + '\n')
+
+
 def multithread_generate_questions(image_paths: list[str], llm, num_threads: int = 4):
     """
     Generate questions for multiple images using multithreading.
@@ -84,7 +165,7 @@ def multithread_generate_questions(image_paths: list[str], llm, num_threads: int
     from concurrent.futures import ThreadPoolExecutor
 
     with ThreadPoolExecutor(max_workers=num_threads) as executor:
-        futures = [executor.submit(generate_question, llm, image_path) for image_path in image_paths]
+        futures = [executor.submit(generate_question_v2, llm, image_path) for image_path in image_paths]
         for future in futures:
             future.result()  # Wait for all tasks to complete
 
@@ -93,7 +174,7 @@ def sequential_generate_questions(image_paths: list[str], llm):
     Generate questions for multiple images sequentially.
     """
     for image_path in image_paths:
-        generate_question(llm, image_path)
+        generate_question_v2(llm, image_path)
 
 done_images = set()
 
