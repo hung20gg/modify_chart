@@ -44,6 +44,12 @@ class Module(BaseModel):
 
     def __init__(self, config: ModuleConfig):
         super().__init__(config=config)
+
+        # Force use of image_path if specified in the configuration
+        if self.config.image_path:
+            self.config.actor_config.image_path = True
+            self.config.critic_config.image_path = True
+
         self.actor = Actor(config=config.actor_config)
         self.critic = Critic(config=config.critic_config)
 
@@ -123,12 +129,16 @@ class Module(BaseModel):
                 }
 
             # Step 3: Create combined image for critic
-            combined_image = merge_images([image, transition['image_file_path']],
+            combined_image = merge_images([image, 
+                                           transition['image_file_path']],
                                            titles=['Input Image', 'Transition Image'],
                                            run_name=run_name, 
                                            tag=tag,
                                            save_folder=env.config.cache_folder,
+                                             return_path=self.config.image_path
                                            )
+            
+            print(f"Combined image path: {combined_image}")
 
             # Step 4: Get critic result
             action_code = transition.get('code', None)
@@ -178,7 +188,7 @@ class Module(BaseModel):
         :return: Result of the action.
         """
         # Delegate action to actor and critic
-        actor_result = self.actor.act(request, image, prev_state_code, prev_state_critique)
+        actor_result = self.actor.act(request, image, prev_state_code, prev_state_critique, run_name=run_name, tag=tag)
         action = actor_result.get('action', request)
 
         if self.debug:
@@ -195,10 +205,13 @@ class Module(BaseModel):
                                        )
 
         action_code = transition.get('code', None)
+        print(f"Combined image path: {combined_image}")
         
         critic_result = self.critic.act(request,
                                          action_code=action_code,
-                                         action_image=combined_image)
+                                         action_image=combined_image,
+                                         run_name=run_name, 
+                                         tag=tag)
         
         critic_result['score'] = min(critic_result['text_critic']['score'], critic_result['vision_critic']['score'])  # Ensure score is between 0 and 1
 
@@ -233,8 +246,8 @@ class Module(BaseModel):
         """
         
         prev_state_critique = "### Vision Critique:\n" + (prev_vision_critique or '') + "\n\n### Text Critique:\n" + (prev_text_critique or '')
-        
-        actor_result = self.actor.act_with_prev_state(request, image, prev_state_code, prev_state_critique)
+
+        actor_result = self.actor.act_with_prev_state(request, image, prev_state_code, prev_state_critique, run_name=run_name, tag=tag)
         action = actor_result.get('action', request)
 
         if self.debug:
@@ -263,7 +276,9 @@ class Module(BaseModel):
                                                         action_code=action_code,
                                                         action_image=combined_image,
                                                         prev_vision_critique=prev_vision_critique,
-                                                        prev_text_critique=prev_text_critique
+                                                        prev_text_critique=prev_text_critique,
+                                                        run_name=run_name,
+                                                        tag=tag
                                                         )
         
         critic_result['score'] = min(critic_result['text_critic']['score'], critic_result['vision_critic']['score'])  # Ensure score is between 0 and 1

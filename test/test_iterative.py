@@ -24,8 +24,10 @@ from pipeline.execution import HtmlEnv, HtmlEnvConfig, PythonEnv, PythonEnvConfi
 
 if __name__ == "__main__":
     
-    language = 'python'  # or 'python'
-    
+    language = 'html'  # or 'python'
+    force_image_path = True  # Set to True to force using image_path for communication
+    logger = 'mongodb'  # or 'postgres' for logging
+
     if language == 'html':
         env = HtmlEnv(config=HtmlEnvConfig(name="HTML Environment"))
     elif language == 'python':
@@ -33,17 +35,17 @@ if __name__ == "__main__":
     else:
         raise ValueError(f"Unsupported language: {language}. Expected 'html' or 'python'.")
     
-    code_model = 'google:gemma-3-4b-it'
-    vision_model = 'gemini-2.5-flash-preview-05-20'
+    code_model = 'google:gemma-3-27b-it'
+    vision_model = 'gpt-4.1'
 
     # Create a module configuration
-    actor_config = ActorConfig(name="Test Actor", model_name=code_model, code=language)
-    vision_critic_config = VisionCriticConfig(name="Vision Critic", model_name=vision_model)
-    text_critic_config = TextCriticConfig(name="Text Critic", model_name=vision_model, code=language)
+    actor_config = ActorConfig(name="Test Actor", model_name=code_model, code=language, image_path=force_image_path, logger=logger)
+    vision_critic_config = VisionCriticConfig(name="Vision Critic", model_name=vision_model, image_path=force_image_path, logger=logger)
+    text_critic_config = TextCriticConfig(name="Text Critic", model_name=vision_model, code=language, image_path=force_image_path, logger=logger)
 
     critic_config = CriticConfig(name="Test Critic", vision=vision_critic_config, text=text_critic_config, model_name=code_model)
-    module_config = ModuleConfig(name="Test Module", actor_config=actor_config, critic_config=critic_config)
-    
+    module_config = ModuleConfig(name="Test Module", actor_config=actor_config, critic_config=critic_config, image_path=force_image_path)
+
     module = Module(config=module_config)
     run_name = "test_run"
     # Create an iterative pipeline
@@ -58,6 +60,6 @@ if __name__ == "__main__":
     # result = pipeline.act(request=task, image=image_path)
     # print(result)
     
-    image_generator = pipeline.stream_act(request=task, image=image_path)
-    for image in image_generator:
-        print('GENERATOR:',image)
+    image_generator = pipeline.act_with_prev_state(request=task, image=image_path)
+    # for image in image_generator:
+    #     print('GENERATOR:',image)

@@ -8,6 +8,10 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from llm import get_llm_wrapper, get_rotate_llm_wrapper
 from llm.logger.log_mongodb import LLMLogMongoDB
 from llm.logger.log_postgres import LLMLogPostgres
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class AgentConfig(BaseModel):
     """
@@ -16,7 +20,7 @@ class AgentConfig(BaseModel):
     name: str = Field(..., description="Purpose of the agent")
     model_name: str = Field(default=None, description="Model to be used by the agent")
     debug: bool = Field(default=False, description="Enable debug mode for the agent")
-    message_logger: str = Field(default=None, description="Logger to be used for the agent messages. None, mongodb or postgres")
+    logger: str = Field(default=None, description="Logger to be used for the agent messages. None, mongodb or postgres")
     rotate: bool = Field(default=False, description="Enable rotation of the model for the agent")
     image_path: Optional[bool] = Field(default=False, description="Whether to force use image_path to communicate with the agent, default is False")
 class Agent(BaseModel):
@@ -42,10 +46,13 @@ class Agent(BaseModel):
         else:
             self.llm = get_llm_wrapper(config.model_name, multimodal=True)
 
-        if config.message_logger == 'mongodb':
+        if config.logger == 'mongodb':
+            logging.info("Using MongoDB logger")
             from llm.logger.log_mongodb import LLMLogMongoDB
             self.llm = LLMLogMongoDB(self.llm)
-        elif config.message_logger == 'postgres':
+        
+        elif config.logger == 'postgres':
+            logging.info("Using PostgreSQL logger")
             from llm.logger.log_postgres import LLMLogPostgres
             self.llm = LLMLogPostgres(self.llm)  
 

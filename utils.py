@@ -218,7 +218,7 @@ def merge_images(
     if return_path:
         # Save the merged image to a temporary path
         run_time = time.strftime("%Y%m%d-%H%M%S")
-        output_path = os.path.join(current_dir, 'merged', f"merged_{run_name}_{tag}_{run_time}.png")
+        output_path = os.path.join(current_dir, 'temp', 'merged', run_name, f"merged_{run_name}_{tag}_{run_time}.png")
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         new_image.save(output_path)
         print(f"Merged image saved to {output_path}")

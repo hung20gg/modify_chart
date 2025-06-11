@@ -34,7 +34,7 @@ class Actor(Agent):
         
         code_snippet = ""
         if self.config.code == 'python':
-            code_snippet = "### Code sample for python chart:"
+            code_snippet = "### Code sample for python chart:\n\n"
             
             with open(os.path.join(current_dir, '..', 'example', 'chart.py'), 'r') as f:
                 code_snippet += '```python\n' + f.read() + '\n```'
@@ -59,7 +59,7 @@ class Actor(Agent):
         :param prev_state_critique: Previous state critique.
         :return: Formatted Python prompt.
         """
-        prev_state_code = f"### Previous code for chart: \n\n```{self.config.code}\n{prev_state_code}\n```"
+        prev_state_code = f"### Previous code for chart: \n\n{prev_state_code}\n"
         prev_state_critique = f"### Previous critique on the chart: \n\n{prev_state_critique}\n" if prev_state_critique else ""
         
         return f"""
@@ -75,7 +75,7 @@ class Actor(Agent):
 
     def html_prompt(self, action: str, prev_state_code: str = None, prev_state_critique: str = None):
 
-        prev_state_code = f"### Previous code for chart: \n\n```{self.config.code}\n{prev_state_code}\n```"
+        prev_state_code = f"### Previous code for chart: \n\n{prev_state_code}\n"
         prev_state_critique = f"### Previous critique on the chart: \n\n{prev_state_critique}\n" if prev_state_critique else ""
 
         return f"""
@@ -89,7 +89,13 @@ class Actor(Agent):
 { prev_state_critique if prev_state_critique else "" }"""
 
 
-    def act(self, request: str, image : Union[str, Image.Image] = None, prev_state_code: str = None, prev_state_critique: str = None) -> dict:
+    def act(self, 
+            request: str, 
+            image : Union[str, Image.Image] = None, 
+            prev_state_code: str = None, 
+            prev_state_critique: str = None,
+            run_name: str = None,
+            tag: str = None) -> dict:
         """
         Perform an action with the given parameters.
 
@@ -102,10 +108,13 @@ class Actor(Agent):
 
         # Placeholder for action logic
         if isinstance(image, str):
+            image_path = image
             if os.path.exists(image):
                 image = open_image(image)
             else:
                 raise ValueError(f"Image path {image} does not exist.")
+        else:
+            image_path = None
 
         sys_prompt = self.get_sys_prompt()
 
@@ -136,7 +145,7 @@ class Actor(Agent):
             }
         ]
 
-        action = self.llm(messages)
+        action = self.llm(messages, run_name=run_name, tag=f'Actor_{tag}', images_path=image_path)
 
         if self.config.debug:
             print(f"Action: {action}")
@@ -144,9 +153,9 @@ class Actor(Agent):
         return {
             'action': action
         }
-    
-    def act_with_prev_state(self, request: str, image : Union[str, Image.Image] = None, prev_state_code: str = None, prev_state_critique: str = None) -> dict:
-        return self.act(request, image, prev_state_code, prev_state_critique)
+
+    def act_with_prev_state(self, *args, **kwargs) -> dict:
+        return self.act(*args, **kwargs)
 
     def __str__(self):
         """

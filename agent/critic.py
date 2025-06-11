@@ -55,6 +55,18 @@ class CriticConfig(AgentConfig):
                     "This may lead to inconsistent behavior in the Critic Agent."
                 )
             self.model_name = vision_model
+
+        if self.image_path:
+            self.vision.image_path = True
+            self.text.image_path = True
+
+    def setup_child_configs(self, image_path: bool = False):
+        """
+        Setup child configurations for vision and text critics.
+        :param image_path: Whether to force use image_path to communicate with the agent.
+        """
+        self.vision.image_path = image_path
+        self.text.image_path = image_path
                 
 
 
@@ -72,7 +84,10 @@ class VisionCritic(Agent):
     def act_with_prev_state(self, 
                             request: str, 
                             action_image : Union[str, Image.Image] = None, 
-                            prev_vision_critique: str = None) -> dict:
+                            prev_vision_critique: str = None,
+                            run_name: str = None,
+                            tag: str = None
+                            ) -> dict:
         """
         Perform an action with the given parameters, Given previous state critique.
 
@@ -123,7 +138,7 @@ class VisionCritic(Agent):
             }
         ]
 
-        raw_response = self.llm(messages)
+        raw_response = self.llm(messages, run_name=run_name, tag=f'vision_critic_{tag}', images_path=action_image)
 
         if self.config.debug:
             print(f"Raw response from Vision Critic: {raw_response}")
@@ -133,13 +148,21 @@ class VisionCritic(Agent):
 
     def act(self, 
             request: str, 
-            action_image: Union[str, Image.Image] = None) -> dict:
+            action_image: Union[str, Image.Image] = None,
+            run_name: str = None,
+            tag: str = None
+            ) -> dict:
         
+        if isinstance(action_image, str) and os.path.exists(action_image):
+            image_path = action_image
+            print(f"Using image path: {image_path} in Vision Critic")
+        else:
+            image_path = None
+            
+
         sys_prompt = get_sys_prompt(self.config.module_name)
 
         user_prompt = f"""
-<image>
-
 ### Task:
 {request}
 """
@@ -164,7 +187,7 @@ class VisionCritic(Agent):
             }
         ]
 
-        raw_response = self.llm(messages)
+        raw_response = self.llm(messages, run_name=run_name, tag=f'vision_critic_{tag}', images_path=image_path)
 
         if self.config.debug:
             print(f"Raw response from Vision Critic: {raw_response}")
@@ -181,7 +204,13 @@ class TextCritic(Agent):
         super().__init__(config)
         self.sys_prompt = get_sys_prompt('text_critic')
 
-    def act_with_prev_state(self, request: str, action_code: str = None, prev_code: str = None, prev_code_critique: str = None) -> dict:
+    def act_with_prev_state(self, 
+                            request: str, 
+                            action_code: str = None, 
+                            prev_code: str = None, 
+                            prev_code_critique: str = None,
+                            run_name: str = None,
+                            tag: str = None) -> dict:
 
         sys_prompt = get_sys_prompt(self.config.module_name)
         sys_prompt += f"\n\n### Code language: {self.config.code}\n"
@@ -212,7 +241,7 @@ class TextCritic(Agent):
             }
         ]
 
-        raw_response = self.llm(messages)
+        raw_response = self.llm(messages, run_name=run_name, tag=f'text_critic_{tag}')
 
         if self.config.debug:
             print(f"Raw response from Text Critic: {raw_response}")
@@ -220,7 +249,11 @@ class TextCritic(Agent):
         return extract_critique_and_score(raw_response)
     
 
-    def act(self, request: str, action_code: str = None) -> dict:
+    def act(self, 
+            request: str, 
+            action_code: str = None,
+            run_name: str = None,
+            tag: str = None) -> dict:
 
         sys_prompt = get_sys_prompt(self.config.module_name)
         sys_prompt += f"\n\n### Code language: {self.config.code}\n"
@@ -244,7 +277,7 @@ class TextCritic(Agent):
             }
         ]
 
-        raw_response = self.llm(messages)
+        raw_response = self.llm(messages, run_name=run_name, tag=f'text_critic_{tag}')
 
         if self.config.debug:
             print(f"Raw response from Text Critic: {raw_response}")
@@ -266,8 +299,8 @@ class Critic(Agent):
         self.text_critic = TextCritic(config.text)
 
 
-    def act(self, request: str, action_image: Union[str, Image.Image] = None, action_code: str = None) -> dict:
-        
+    def act(self, request: str, action_image: Union[str, Image.Image] = None, action_code: str = None, run_name: str = None, tag: str = None) -> dict:
+
         if isinstance(action_image, Image.Image) and self.config.image_path:
             raise ValueError("Image should be a path string, since force use image_path is set to True.")
         
@@ -284,9 +317,9 @@ class Critic(Agent):
 
         with ThreadPoolExecutor(max_workers=2) as executor:
             # Submit both tasks
-            vision_future = executor.submit(self.vision_critic.act, request, action_image)
-            text_future = executor.submit(self.text_critic.act, request, action_code)
-            
+            vision_future = executor.submit(self.vision_critic.act, request, action_image, run_name=run_name, tag=tag)
+            text_future = executor.submit(self.text_critic.act, request, action_code, run_name=run_name, tag=tag)
+
             # Get results
             vision_critique = vision_future.result()
             text_critique = text_future.result()
@@ -295,8 +328,8 @@ class Critic(Agent):
             'vision_critic': vision_critique,
             'text_critic': text_critique
         }
-    
-    def act_with_prev_state(self, request: str, action_image: Union[str, Image.Image] = None, action_code: str = None, prev_vision_critique: str = None, prev_text_critique: str = None) -> dict:
+
+    def act_with_prev_state(self, request: str, action_image: Union[str, Image.Image] = None, action_code: str = None, prev_vision_critique: str = None, prev_text_critique: str = None, run_name: str = None, tag: str = None) -> dict:
         """
         Perform an action with the given parameters, considering previous critiques.
         :param request: The action to perform.
@@ -315,9 +348,9 @@ class Critic(Agent):
 
         with ThreadPoolExecutor(max_workers=2) as executor:
             # Submit both tasks
-            vision_future = executor.submit(self.vision_critic.act_with_prev_state, request, action_image, prev_vision_critique)
-            text_future = executor.submit(self.text_critic.act_with_prev_state, request, action_code, prev_text_critique)
-            
+            vision_future = executor.submit(self.vision_critic.act_with_prev_state, request, action_image, prev_vision_critique, run_name=run_name, tag=tag)
+            text_future = executor.submit(self.text_critic.act_with_prev_state, request, action_code, prev_text_critique, run_name=run_name, tag=tag)
+
             # Get results
             vision_critique = vision_future.result()
             text_critique = text_future.result()
