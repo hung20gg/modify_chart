@@ -154,3 +154,14 @@ if __name__ == "__main__":
     db = PostgresDB(host='localhost', database='postgres', user='postgres', password='12345678', port='5432')
 
     csv_file = os.path.join(current_dir, 'fake_tool.csv')
+
+    # Create table from CSV
+    db.create_table_from_csv(
+        table_name='fake_tool',
+        csv_file=csv_file,
+        delimiter=',',
+        data_types=None,
+        # primary_key='PRD_ID',
+        if_exists='replace',
+        chunksize=1000
+    )
