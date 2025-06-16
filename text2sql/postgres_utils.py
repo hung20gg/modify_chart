@@ -37,7 +37,12 @@ class PostgresDB:
         }
         self.connection = None
         self.connect()
-    
+
+    def get_schema(self):
+        with open(os.path.join(current_dir, 'schema_description.md'), 'r') as f:
+            schema = f.read()
+        return schema
+
     def connect(self):
         """Establish database connection."""
         try:
@@ -65,7 +70,12 @@ class PostgresDB:
             
             if fetch:
                 results = cursor.fetchall()
-                return [dict(row) for row in results]
+                if results:
+                    df = pd.DataFrame([dict(row) for row in results])
+                    return df
+                else:
+                    # Return empty DataFrame with no columns if no results
+                    return pd.DataFrame()
             else:
                 self.connection.commit()
                 return cursor.rowcount
@@ -73,7 +83,8 @@ class PostgresDB:
         except Exception as e:
             self.connection.rollback()
             self.logger.error(f"Query error: {e}")
-            raise
+            error_msg = f"Query error: {e}"
+            return error_msg
         finally:
             if cursor:
                 cursor.close()
@@ -121,6 +132,7 @@ class PostgresDB:
             # Read CSV with pandas
             self.logger.info(f"Reading CSV file: {csv_file}")
             df = pd.read_csv(csv_file, delimiter=delimiter)
+            df['date'] = pd.to_datetime(df['prd_id'], format='%Y%m%d', errors='coerce')
             
             # Set primary key index if specified
             if primary_key and primary_key in df.columns:

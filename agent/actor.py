@@ -69,8 +69,8 @@ class Actor(Agent):
 ### Task: 
 {action}
 
-{ prev_state_code if prev_state_code else "" }
-{ prev_state_critique if prev_state_critique else "" }"""
+{ prev_state_code if prev_state_code.strip() else "" }
+{ prev_state_critique if prev_state_critique.strip() else "" }"""
 
 
     def html_prompt(self, action: str, prev_state_code: str = None, prev_state_critique: str = None):
@@ -118,6 +118,9 @@ class Actor(Agent):
 
         sys_prompt = self.get_sys_prompt()
 
+        if self.config.prompt_adjust != '':
+            sys_prompt = f"{sys_prompt}\n\n### Notice:\n {self.config.prompt_adjust}"
+
         if self.config.code == 'html':
             user_prompt = self.html_prompt(request, prev_state_code, prev_state_critique)
         else:
@@ -145,7 +148,10 @@ class Actor(Agent):
             }
         ]
 
-        action = self.llm(messages, run_name=run_name, tag=f'Actor_{tag}', images_path=image_path)
+        if self.config.logger:
+            action = self.llm(messages, run_name=run_name, tag=f'Actor_{tag}', images_path=image_path)
+        else:
+            action = self.llm(messages)
 
         if self.config.debug:
             print(f"Action: {action}")

@@ -18,8 +18,15 @@ def open_image(image_path):
     Returns:
         PIL.Image.Image: Processed image in RGB mode
     """
+    if isinstance(image_path, Image.Image):
+        # If the input is already a PIL Image, return it directly
+        img = image_path
+
+    elif isinstance(image_path, str) and os.path.exists(image_path):
     # Open the image
-    img = Image.open(image_path)
+        img = Image.open(image_path)
+    else:
+        raise ValueError(f"Invalid image path or PIL Image provided: {image_path}")
     
     # Convert to RGB if needed
     if img.mode != 'RGB':

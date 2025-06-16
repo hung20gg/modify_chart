@@ -1,0 +1,50 @@
+[
+  {
+    "name": "Question 1",
+    "question": "Vẽ biểu đồ thực hiện doanh thu dịch vụ của Điện Biên 5 ngày cuối tháng 8 năm 2024",
+    "sql": "SELECT DATE, VAL FROM fake_tool WHERE OBJ_NAME = 'Điện Biên' AND SERVICE_NAME = 'Doanh thu dịch vụ' AND CYCLE = 'day' AND DATE BETWEEN '2024-08-27' AND '2024-08-31' ORDER BY DATE;",
+    "modify": "Chuyển biểu đồ cột, màu cột màu đỏ #EE0033"
+  },
+  {
+    "name": "Question 2",
+    "question": "Vẽ biểu đồ thực hiện lũy kế Tiêu dùng thực di động các ngày trong tháng 3 năm 2025 của Quảng Trị",
+    "sql": "SELECT DATE, VAL_ACC FROM fake_tool WHERE OBJ_NAME = 'Quảng Trị' AND SERVICE_NAME = 'Tiêu dùng thực di động (TT+TS)' AND CYCLE = 'day' AND DATE BETWEEN '2025-03-01' AND '2025-03-31' ORDER BY DATE LIMIT 31;",
+    "modify": "Thêm đường kế hoạch, đường kế hoạch màu #EE0033, đường thực hiện màu đen"
+  },
+  {
+    "name": "Question 3",
+    "question": "Vẽ biểu đồ thể hiện xu hướng phát triển DT dịch vụ nhóm DV của VDS 12 tháng năm 2024 tỉnh Thanh Hóa",
+    "sql": "SELECT DATE as month, VAL as actual_value FROM fake_tool WHERE OBJ_NAME = 'Thanh Hóa' AND SERVICE_NAME = 'DT dịch vụ nhóm DV của VDS' AND CYCLE = 'month' AND DATE BETWEEN '2024-01-01' AND '2024-12-01' ORDER BY DATE",
+    "modify": "Thêm tỉnh Nghệ An đi"
+  },
+  {
+    "name": "Question 4",
+    "question": "Vẽ biểu đồ tốc độ tăng trưởng FTTx - TB thực lũy kế 4 tháng đầu năm 2025 của Đồng Tháp",
+    "sql": "SELECT DATE, VAL_ACC FROM fake_tool WHERE OBJ_NAME = 'Đồng Tháp' AND SERVICE_NAME = 'FTTx - TB thực lũy kế' AND CYCLE = 'month' AND DATE BETWEEN '2025-01-01' AND '2025-04-01' ORDER BY DATE;",
+    "modify": "Thêm đường FTTx - TB thực tế, chuyển thành các đường"
+  },
+  {
+    "name": "Question 5",
+    "question": "Vẽ biểu đồ so sánh thực hiện lũy kế thuê bao 4G tăng thêm TPHCM 3 tháng cuối năm 2024 với cùng kỳ năm trước",
+    "sql": "SELECT DATE, VAL_ACC, LAST_VAL_YEAR FROM fake_tool WHERE OBJ_NAME = 'TPHCM' AND SERVICE_NAME = 'Thuê bao 4G tăng thêm' AND CYCLE = 'month' AND DATE BETWEEN '2024-10-01' AND '2024-12-01' ORDER BY DATE;",
+    "modify": "Chuyển thành các đường"
+  },
+  {
+    "name": "Question 6",
+    "question": "Vẽ biểu đồ so sánh thực hiện DT dịch vụ nhóm DV của VTT năm 2024 của 3 tỉnh Quảng Bình, Quảng Trị, Thừa Thiên Huế",
+    "sql": "SELECT OBJ_NAME, SUM(VAL) AS total_actual_value FROM fake_tool WHERE SERVICE_NAME = 'DT dịch vụ nhóm DV của VTT' AND CYCLE = 'year' AND DATE = '2024-01-01' AND OBJ_NAME IN ('Quảng Bình', 'Quảng Trị', 'Thừa Thiên Huế') GROUP BY OBJ_NAME ORDER BY OBJ_NAME;",
+    "modify": "Chuyển biểu đồ tròn thể hiện cơ cấu của từng tỉnh trong tổng doanh thu 3 tỉnh"
+  },
+  {
+    "name": "Question 7",
+    "question": "Vẽ biểu đồ thực hiện lũy kế FTTx - TB thực tăng/giảm 5 tháng cuối năm 2024 của các thành phố Hà Nội, Đà Nẵng, Hồ Chí Minh",
+    "sql": "SELECT OBJ_NAME, SUM(VAL_ACC) AS total_accumulated_fttx FROM fake_tool WHERE SERVICE_NAME = 'FTTx - TB thực tăng/giảm' AND CYCLE = 'month' AND DATE BETWEEN '2024-08-01' AND '2024-12-01' AND OBJ_NAME IN ('Hà Nội', 'Đà Nẵng', 'TPHCM') GROUP BY OBJ_NAME ORDER BY OBJ_NAME;",
+    "modify": "Giữ lại 3 tháng cuối thôi"
+  },
+  {
+    "name": "Question 8",
+    "question": "Vẽ biểu đồ thực hiện và kế hoạch Thuê bao Register tăng thêm của Vĩnh Phúc trong nửa cuối năm 2023",
+    "sql": "SELECT DATE, PLAN, VAL FROM fake_tool WHERE OBJ_NAME = 'Vĩnh Phúc' AND SERVICE_NAME = 'Thuê bao Register tăng thêm' AND DATE BETWEEN '2023-07-01' AND '2023-12-31' ORDER BY DATE;",
+    "modify": "Thêm cùng kỳ năm trước"
+  }
+]

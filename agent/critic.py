@@ -137,9 +137,11 @@ class VisionCritic(Agent):
                 ]
             }
         ]
-
-        raw_response = self.llm(messages, run_name=run_name, tag=f'vision_critic_{tag}', images_path=action_image)
-
+        if self.config.logger:
+            raw_response = self.llm(messages, run_name=run_name, tag=f'vision_critic_{tag}', images_path=action_image)
+        else:
+            raw_response = self.llm(messages)
+        
         if self.config.debug:
             print(f"Raw response from Vision Critic: {raw_response}")
 
@@ -187,7 +189,10 @@ class VisionCritic(Agent):
             }
         ]
 
-        raw_response = self.llm(messages, run_name=run_name, tag=f'vision_critic_{tag}', images_path=image_path)
+        if self.config.logger:
+            raw_response = self.llm(messages, run_name=run_name, tag=f'vision_critic_{tag}', images_path=image_path)
+        else:
+            raw_response = self.llm(messages)
 
         if self.config.debug:
             print(f"Raw response from Vision Critic: {raw_response}")
@@ -240,8 +245,10 @@ class TextCritic(Agent):
                 'content': user_prompt.strip()
             }
         ]
-
-        raw_response = self.llm(messages, run_name=run_name, tag=f'text_critic_{tag}')
+        if self.config.logger:
+            raw_response = self.llm(messages, run_name=run_name, tag=f'text_critic_{tag}')
+        else:
+            raw_response = self.llm(messages)
 
         if self.config.debug:
             print(f"Raw response from Text Critic: {raw_response}")
@@ -276,8 +283,10 @@ class TextCritic(Agent):
                 'content': user_prompt
             }
         ]
-
-        raw_response = self.llm(messages, run_name=run_name, tag=f'text_critic_{tag}')
+        if self.config.logger:
+            raw_response = self.llm(messages, run_name=run_name, tag=f'text_critic_{tag}')
+        else:
+            raw_response = self.llm(messages)
 
         if self.config.debug:
             print(f"Raw response from Text Critic: {raw_response}")

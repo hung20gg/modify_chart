@@ -9,4 +9,3 @@ from .critic import (
     VisionCritic
 )
 from .prompt.get_sys_prompt import get_sys_prompt
-from .evaluation import EvaluatorConfig, Evaluator

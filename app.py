@@ -127,7 +127,7 @@ if st.button("Generate Charts"):
                     st.code(chunk.get('code', ''), language='python')
 
         elif language == 'html':
-            html_content = chunk.get('html_code', None)
+            html_content = chunk.get('code', None)
             if html_content:
                 # with cols[idx]:
                 

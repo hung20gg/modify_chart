@@ -83,7 +83,7 @@ def get_sql_code_from_text(response):
                 # clean the content
                 if content.strip() != "":
                     sql_code.append(content)
-            
+    print(f"Extracted {len(sql_code)} SQL code snippets from response.")
     return sql_code
 
 
@@ -133,7 +133,7 @@ def TIR_reasoning(response, db, verbose=False, prefix=""):
         
         if not is_sql_full_of_comments(code): 
               
-            table = db.query(code, return_type='dataframe')
+            table = db.query(code)
             
             # If it see an error in the SQL code
             if isinstance(table, str):

@@ -116,13 +116,15 @@ class Module(BaseModel):
             if self.actor.config.code == 'html':
                 yield {
                     'status': 'environment_executed',
+                    'type': 'code',
                     'language': 'html',
-                    'html_code': transition['code'],
+                    'code': transition['code'],
                     'image_file_path': transition.get('image_file_path', None)
                 }
             elif self.actor.config.code == 'python':
                 yield {
                     'status': 'environment_executed',
+                    'type': 'code',
                     'language': 'python',
                     'image_file_path': transition['image_file_path'],
                     'code': transition.get('code', None)
@@ -154,6 +156,7 @@ class Module(BaseModel):
             # Step 5: Yield final complete result
             yield {
                 "status": "completed",
+                'type': 'flag',
                 "actor_result": actor_result,
                 "critic_result": critic_result,
                 "output_image": transition['image_file_path'],
@@ -164,6 +167,7 @@ class Module(BaseModel):
             # Handle any unexpected errors
             yield {
                 "status": "error",
+                'type': 'flag',
                 "error": str(e),
                 "message": f"Unexpected error during streaming action: {str(e)}"
             }

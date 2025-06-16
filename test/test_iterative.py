@@ -60,6 +60,8 @@ if __name__ == "__main__":
     # result = pipeline.act(request=task, image=image_path)
     # print(result)
     
-    image_generator = pipeline.act_with_prev_state(request=task, image=image_path)
+    image_generator = pipeline.act(request=task, image=image_path)
+    print('Image generator created')
+    print(image_generator)
     # for image in image_generator:
     #     print('GENERATOR:',image)

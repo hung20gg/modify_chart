@@ -20,9 +20,10 @@ class AgentConfig(BaseModel):
     name: str = Field(..., description="Purpose of the agent")
     model_name: str = Field(default=None, description="Model to be used by the agent")
     debug: bool = Field(default=False, description="Enable debug mode for the agent")
-    logger: str = Field(default=None, description="Logger to be used for the agent messages. None, mongodb or postgres")
+    logger: Optional[str] = Field(default=None, description="Logger to be used for the agent messages. None, mongodb or postgres")
     rotate: bool = Field(default=False, description="Enable rotation of the model for the agent")
     image_path: Optional[bool] = Field(default=False, description="Whether to force use image_path to communicate with the agent, default is False")
+    prompt_adjust: Optional[str] = Field(default='', description="Adjust the prompt for the agent, either 'keep', 'shrink' or 'text'")
 class Agent(BaseModel):
     """
     Represents an agent that can perform actions based on the provided configuration.

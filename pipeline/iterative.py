@@ -145,6 +145,7 @@ class IterativePipeline(BaseModel):
 
             yield {
                 'status': 'score',
+                'type': 'score',
                 'iteration': current_iteration,
                 'score': result['critic_result']['score'],
             }
