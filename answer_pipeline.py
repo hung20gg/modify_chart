@@ -1,5 +1,5 @@
 from pipeline.iterative import IterativePipeline
-
+from pipeline.mcts import MCTSPipeline
 
 actor_models = [
     "gpt-4.1-mini", 
@@ -103,8 +103,11 @@ def setup_pipeline(actor_model, critic_model, env_type, logger='mongodb'):
     run_id = str(uuid.uuid4())[:8]
     run_name = f"chart_run_{timestamp}_{run_id}"
     
-    pipeline = IterativePipeline(module=module, env=env, run_name=run_name, debug=True)
+    # pipeline = IterativePipeline(module=module, env=env, run_name=run_name, debug=True)
     
+    pipeline = MCTSPipeline(module=module, env=env, run_name=run_name, debug=False, max_iterations = 8)
+
+
     return pipeline
 
 def setup_evaluation(evaluate_model, logger=None):
@@ -156,7 +159,7 @@ def save_evaluation_results(question_data, actor, critic, env_type, **kwargs):
         **kwargs
     }
 
-    output_file = f"results/{actor.replace('/', '_')}_{critic.replace('/', '_')}_{env_type}_eval.jsonl"
+    output_file = f"results/mcts_{actor.replace('/', '_')}_{critic.replace('/', '_')}_{env_type}_eval.jsonl"
     with open(output_file, 'a') as f:
         f.write(json.dumps(result_data) + '\n')
 
@@ -252,13 +255,13 @@ def evaluate_question(question_data, actor_model, critic_model, env_type, idx, t
             save_params['score'] = score
             save_params['number_iter'] = number_iter
 
-            if len(results) == 1:
-                # If only one iteration, use the first score
-                save_params['first_score'] = score
-            else:
-                first_image = results[0].get('output_image', None)
-                combined_image = merge_images([open_image(question_data["image_path"]), open_image(first_image)],                                               titles=[f"Original Image", f"First Generated Image"])
-                save_params['first_score'] = evaluator.act(request=question_data["question"], action_image=combined_image).get('score', 0)
+            # if len(results) == 1:
+            #     # If only one iteration, use the first score
+            #     save_params['first_score'] = score
+            # else:
+            #     first_image = results[0].get('output_image', None)
+            #     combined_image = merge_images([open_image(question_data["image_path"]), open_image(first_image)],                                               titles=[f"Original Image", f"First Generated Image"])
+            #     save_params['first_score'] = evaluator.act(request=question_data["question"], action_image=combined_image).get('score', 0)
 
 
         # Save results
@@ -301,7 +304,7 @@ def eval_threaded(max_workers=2, dataset='chart_modification_eval.jsonl', actor_
     """Multithreaded version of main function to process questions concurrently"""
     # Load all questions
     evaluation_path = os.path.join('test', dataset)
-    questions = load_questions(jsonl_file=evaluation_path, done_file=f"results/{actor_model}_{critic_model}_{env_type}_eval.jsonl")[::-1]
+    questions = load_questions(jsonl_file=evaluation_path, done_file=f"results/mcts_{actor_model}_{critic_model}_{env_type}_eval.jsonl")[::-1]
     print(f"Loaded {len(questions)} questions")
     print(f"Using {max_workers} threads")
     
@@ -331,5 +334,6 @@ def eval_threaded(max_workers=2, dataset='chart_modification_eval.jsonl', actor_
 if __name__ == "__main__":
     # Use main_threaded() instead of main()
     model = 'google:gemma-3-27b-it'
-    environment = 'python'
-    eval_threaded(actor_model=model, critic_model=model, env_type=environment)
+    environment = 'html'
+    max_workers = 2
+    eval_threaded(actor_model=model, critic_model=model, env_type=environment, max_workers=max_workers)

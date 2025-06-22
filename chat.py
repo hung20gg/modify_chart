@@ -67,8 +67,8 @@ think_mode = st.sidebar.checkbox("Think Mode", value=False, help="Enable iterati
 def initialize_text2chart():
     """Initialize the Text2Chart object with all components"""
     # For router and SQL, always use gpt-4.1-mini as specified
-    router_model = "gpt-4.1-mini"
-    sql_model = "gpt-4.1-mini"
+    router_model = "gpt-4.1"
+    sql_model = "gpt-4.1"
     
     # Set up environment based on language choice
     if language_type == "python":
@@ -127,6 +127,15 @@ if st.session_state.current_image:
     st.subheader("Current Chart")
     st.image(st.session_state.current_image, use_container_width=True)
 
+
+def concatenate_critiques(critiques, travel = 1):
+    if not isinstance(critiques, dict):
+        
+        return str(critiques).strip()
+    
+    return "\n".join([f"#{'#'*travel} {key}: \n{concatenate_critiques(value, travel + 1)}\n" for key, value in critiques.items() if value])
+
+
 # User input section
 st.header("Chart Request")
 user_request = st.text_area("Enter your request to create or modify the chart:")
@@ -158,6 +167,14 @@ if st.button("Generate/Modify Chart"):
                     current_iteration = step.get('iteration', 0)
                     progress_placeholder.text(f"Status: {step.get('status', 'Processing')} - {step.get('message', '')}")
                     
+                    if step.get('status') == 'completed':
+
+                        # score = step['critic_result'].get('score', None)
+                        critiques = concatenate_critiques(step.get('critic_result', {})).strip()
+                        if critiques:
+                            with st.expander(f"Critic Result - Iteration {current_iteration}", expanded=False):
+                                st.markdown(critiques)
+
                     # Handle different response types
                     if step.get('type') == 'code':
                         with code_placeholder.expander("Generated Code", expanded=False):

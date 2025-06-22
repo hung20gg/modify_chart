@@ -20,10 +20,7 @@ Here is the database schema:
 Your task is to generate a SQL query based on the user's question.
 The SQL query should be valid and executable on the database.
 
-Here are some examples of questions you might be asked:
-
-...
-
+You must generate/regenerate SQL
 """
 
 

@@ -1,8 +1,8 @@
 [
   {
     "name": "Question 1",
-    "question": "Vẽ biểu đồ thực hiện doanh thu dịch vụ của Điện Biên 5 ngày cuối tháng 8 năm 2024",
-    "sql": "SELECT DATE, VAL FROM fake_tool WHERE OBJ_NAME = 'Điện Biên' AND SERVICE_NAME = 'Doanh thu dịch vụ' AND CYCLE = 'day' AND DATE BETWEEN '2024-08-27' AND '2024-08-31' ORDER BY DATE;",
+    "question": "Vẽ biểu đồ thực hiện doanh thu dịch vụ của Hà Nội 10 ngày cuối tháng 10 năm 2023",
+    "sql": "SELECT DATE, VAL FROM fake_tool WHERE OBJ_NAME = 'Hà Nội' AND SERVICE_NAME = 'Doanh thu dịch vụ' AND CYCLE = 'day' AND DATE BETWEEN '2023-10-22' AND '2023-10-31' ORDER BY DATE;",
     "modify": "Chuyển biểu đồ cột, màu cột màu đỏ #EE0033"
   },
   {
@@ -45,6 +45,30 @@
     "name": "Question 8",
     "question": "Vẽ biểu đồ thực hiện và kế hoạch Thuê bao Register tăng thêm của Vĩnh Phúc trong nửa cuối năm 2023",
     "sql": "SELECT DATE, PLAN, VAL FROM fake_tool WHERE OBJ_NAME = 'Vĩnh Phúc' AND SERVICE_NAME = 'Thuê bao Register tăng thêm' AND DATE BETWEEN '2023-07-01' AND '2023-12-31' ORDER BY DATE;",
-    "modify": "Thêm cùng kỳ năm trước"
+    "modify": "Thêm cùng kỳ năm trước (2023 và 2022)"
+  },
+  {
+    "name": "Question 9",
+    "question": "Vẽ biểu đồ thực hiện và kế hoạch Thuê bao Register tăng thêm của Hà Nội trong nửa cuối năm 2023",
+    "sql": "SELECT DATE, PLAN, VAL FROM fake_tool WHERE OBJ_NAME = 'Hà Nội' AND SERVICE_NAME = 'Thuê bao Register tăng thêm' AND DATE BETWEEN '2023-07-01' AND '2023-12-31' ORDER BY DATE;",
+    "modify": "Thêm tỉnh Nghệ An đi"
+  },
+  {
+    "name": "Question 10",
+    "question": "Vẽ biểu đồ so sánh thực hiện DT dịch vụ nhóm DV của VTT năm 2024 của Hà Nội và Hải Phòng",
+    "sql": "SELECT OBJ_NAME, SUM(VAL) AS total_actual_value FROM fake_tool WHERE SERVICE_NAME = 'DT dịch vụ nhóm DV của VTT' AND CYCLE = 'year' AND DATE = '2024-01-01' AND OBJ_NAME IN ('Hà Nội', 'Hải Phòng') GROUP BY OBJ_NAME ORDER BY OBJ_NAME;",
+    "modify": "Chuyển biểu đồ tròn thể hiện cơ cấu của từng tỉnh trong tổng doanh thu 2 tỉnh"
+  },
+  {
+    "name": "Question 11",
+    "question": "Vẽ biểu đồ thể hiện xu hướng phát triển DT dịch vụ nhóm DV của VDS năm 2024 tỉnh Bến Tre",
+    "sql": "SELECT DATE as month, VAL as actual_value FROM fake_tool WHERE OBJ_NAME = 'Bến Tre' AND SERVICE_NAME = 'DT dịch vụ nhóm DV của VDS' AND CYCLE = 'month' AND DATE BETWEEN '2024-01-01' AND '2024-11-01' ORDER BY DATE",
+    "modify": "Thêm TPHCM đi"
+  },
+  {
+    "name": "Question 12",
+    "question": "Vẽ biểu đồ thực hiện doanh thu dịch vụ của Nam Định 5 ngày cuối tháng 10 năm 2023",
+    "sql": "SELECT DATE, VAL FROM fake_tool WHERE OBJ_NAME = 'Nam Định' AND SERVICE_NAME = 'Doanh thu dịch vụ' AND CYCLE = 'day' AND DATE BETWEEN '2023-10-27' AND '2023-10-31' ORDER BY DATE;",
+    "modify": "Chuyển biểu đồ cột, màu cột màu đỏ #EE0033"
   }
 ]

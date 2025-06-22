@@ -45,13 +45,37 @@ class Router(BaseModel):
         """
         Route the request to the appropriate agent based on the content of the request.
         """
+#         system_prompt = """
+# You are a routing agent, and based on the user's request and previous responses, you will determine which agent should handle the request.
+
+# You have 2 agents available:
+# 1. SQL: Handles SQL-related questions and generates SQL queries.
+# 2. Chart: Handles chart modification requests and generates code to modify charts.
+# 3. Pass: If the request does not match any agent's capabilities, you will pass the request
+
+# Depend on the user's request, decide which agent should handle the request.
+# For example, user wants to create chart that does not have adequate data or adding new data, you will pass the request to SQLAgent to generate the SQL query to get the data first.
+
+# And the SQL Agent task should not have the part 'Create chart', it should only focus on generating the SQL query to get the data.
+
+# If no data is available for visualization, you should pass the request to the SQL agent to generate the SQL query to get the data first.
+# Any request that add features (new line, new data, new chart) (e.g: Thêm đường kế hoạch, Thêm tỉnh Thanh Hoá) should be passed to the SQL agent to collect additional data.
+
+# Return the agent and the corresponding task in the following format:
+# ```json
+# {
+#     "agent": "SQL|Chart|Pass",
+#     "task": "The task for the agent"
+# }
+# ```
+
+# Maintain the task as user's language for SQL's task, and only return the translation with Chart task.
+# """
         system_prompt = """
 You are a routing agent, and based on the user's request and previous responses, you will determine which agent should handle the request.
 
-You have 2 agents available:
+You have 1 agents available:
 1. SQL: Handles SQL-related questions and generates SQL queries.
-2. Chart: Handles chart modification requests and generates code to modify charts.
-3. Pass: If the request does not match any agent's capabilities, you will pass the request
 
 Depend on the user's request, decide which agent should handle the request.
 For example, user wants to create chart that does not have adequate data or adding new data, you will pass the request to SQLAgent to generate the SQL query to get the data first.
@@ -61,15 +85,17 @@ And the SQL Agent task should not have the part 'Create chart', it should only f
 If no data is available for visualization, you should pass the request to the SQL agent to generate the SQL query to get the data first.
 Any request that add features (new line, new data, new chart) (e.g: Thêm đường kế hoạch, Thêm tỉnh Thanh Hoá) should be passed to the SQL agent to collect additional data.
 
+If given the previous response, you should create the request based on the previous response and the user request.
+
 Return the agent and the corresponding task in the following format:
 ```json
 {
-    "agent": "SQL|Chart|Pass",
+    "agent": "SQL",
     "task": "The task for the agent"
 }
 ```
 
-Maintain the task as user's language for SQL's task, and only return the translation with Chart task.
+Maintain the task as user's language for SQL's task.
 """
 
         last_response_text = self.__flatten_response(last_response).strip()
@@ -246,15 +272,18 @@ class Text2Chart(BaseModel):
         """
         Process a request and return the response.
         """
-        last_response = self.prev_requests[:-4].copy()
+        last_request = self.prev_requests[:-4].copy()
 
         if not image:
             image = self.images[-1] if self.images else None
 
         # Route the request
-        routing_result = self.router.router(request, last_response, image)
+        routing_result = self.router.router(request, last_request, image)
         agent = routing_result.get("agent", "Pass")
         task = routing_result.get("task", "")
+        
+        # agent = "SQL"
+        # task = last_request + " " + request
 
         if agent == "Pass":
 
